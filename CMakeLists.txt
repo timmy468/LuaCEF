@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.15)
 project(LuaCEF)
 
 set(CEF_ROOT "${CMAKE_SOURCE_DIR}/third_party/cef")
+set(CEF_RUNTIME_LIBRARY_FLAG
+    "/MD"
+    CACHE STRING ""
+    FORCE)
 add_subdirectory(
     ${CEF_ROOT}
     ${CMAKE_BINARY_DIR}/cef
