@@ -41,10 +41,18 @@ void Plugin::InstallGameHooks()
 
 bool Plugin::IsInitialized() const
 {
-    return webCore_ != nullptr;
+    return webCore_ != nullptr && webCore_->IsInitialized();
 }
 
-WebView* Plugin::Create(const char* url, int x, int y, int width, int height)
+bool Plugin::IsAnyInputActive() const
+{
+    if (!IsInitialized())
+        return false;
+
+    return webCore_->IsAnyInputActive();
+}
+
+WebView* Plugin::Create(const char* url, int x, int y, int width, int height, WebView::FrameCallback onCreate)
 {
     if (!IsInitialized())
         return nullptr;
@@ -52,18 +60,18 @@ WebView* Plugin::Create(const char* url, int x, int y, int width, int height)
     std::println(std::cout, "Creating web view with URL: {}, x: {}, y: {}, width: {}, height: {}", url, x, y, width,
                  height);
 
-    auto webView = webCore_->Create(url, x, y, width, height);
+    auto webView = webCore_->Create(url, x, y, width, height, onCreate);
     return webView;
 }
 
-WebView* Plugin::CreateFullscreen(const char* url)
+WebView* Plugin::CreateFullscreen(const char* url, WebView::FrameCallback onCreate)
 {
     if (!IsInitialized())
         return nullptr;
 
     std::println(std::cout, "Creating fullscreen web view with URL: {}", url);
 
-    auto webView = webCore_->Create(url, 0, 0, RsGlobal.maximumWidth, RsGlobal.maximumHeight);
+    auto webView = webCore_->Create(url, 0, 0, RsGlobal.maximumWidth, RsGlobal.maximumHeight, onCreate);
     return webView;
 }
 
@@ -101,7 +109,7 @@ void Plugin::OnD3DReset()
 
 void Plugin::OnDrawingEvent()
 {
-    webCore_->UpdateTextures();
+    webCore_->Update();
 }
 
 void Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

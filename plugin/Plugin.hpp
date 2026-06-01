@@ -16,8 +16,9 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
     void OnDetach();
 
     bool IsInitialized() const;
-    WebView* Create(const char* url, int x, int y, int width, int height);
-    WebView* CreateFullscreen(const char* url);
+    bool IsAnyInputActive() const;
+    WebView* Create(const char* url, int x, int y, int width, int height, WebView::FrameCallback onCreate);
+    WebView* CreateFullscreen(const char* url, WebView::FrameCallback onCreate);
     void Close(WebView* view);
 
   private:

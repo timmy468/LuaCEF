@@ -2,6 +2,7 @@
 add_library(LuaCEFPlugin SHARED)
 
 target_sources(LuaCEFPlugin PRIVATE
+    utils/samp_utils.cpp
     web/WebCore.cpp
     web/WebView.cpp
 
@@ -32,7 +33,12 @@ FetchContent_Declare(kthook
   GIT_TAG 21ca70481273d1efcc98ca49063178e46277009b
 )
 
-FetchContent_MakeAvailable(plugintmplt xbyak ktsignal kthook)
+FetchContent_Declare(sampapi
+  GIT_REPOSITORY https://github.com/BlastHackNet/SAMP-API.git
+  GIT_TAG 6d4db99ab41f19d1a6a7c6cd48f5878bd1e14b62
+)
+
+FetchContent_MakeAvailable(plugintmplt xbyak ktsignal kthook sampapi)
 
 find_package(plugin-sdk REQUIRED)
 
@@ -40,6 +46,7 @@ target_link_libraries(LuaCEFPlugin PRIVATE
     plugintmplt
     pluginsdk::gtasa
     kthook
+    sampapi
 )
 
 target_include_directories(LuaCEFPlugin PRIVATE

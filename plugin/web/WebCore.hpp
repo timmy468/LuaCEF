@@ -20,8 +20,11 @@ class WebCore
         return device_ != nullptr;
     }
 
-    WebView* Create(const std::string& url, int x, int y, int w, int h);
+    bool IsAnyInputActive() const;
+
+    WebView* Create(const std::string& url, int x, int y, int w, int h, WebView::FrameCallback onCreate);
     void Close(WebView* view);
+    void Update();
     void UpdateTextures();
 
     bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

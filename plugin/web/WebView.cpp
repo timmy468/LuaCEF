@@ -4,11 +4,18 @@
 #include <cstring>
 #include <iostream>
 
-WebView::WebView(IDirect3DDevice9* device, int x, int y, int width, int height)
-    : device_(device), width_(width), height_(height)
+#include "utils/samp_utils.hpp"
+
+WebView::WebView(IDirect3DDevice9* device, int x, int y, int width, int height, FrameCallback onCreate)
+    : device_(device), width_(width), height_(height), onCreate_(onCreate)
 {
-    device_->CreateTexture(width, height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &textureData_.texture,
-                           nullptr);
+    auto hr = device_->CreateTexture(width, height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT,
+                                     &textureData_.texture, nullptr);
+
+    if (FAILED(hr))
+    {
+        std::println(std::cerr, "CreateTexture failed {:08X}", static_cast<uint32_t>(hr));
+    }
 
     CefWindowInfo window_info;
     window_info.SetAsWindowless(nullptr);
@@ -181,14 +188,28 @@ void WebView::UpdateTexture()
     data.texture->UnlockRect(0);
 }
 
-std::string WebView::GetURL()
+bool WebView::InputEnabled() const
+{
+    return inputEnabled_;
+}
+
+void WebView::SetInputEnabled(bool enabled)
+{
+    inputEnabled_ = enabled;
+    if (inputEnabled_)
+        samp_utils::ToggleCursor(true);
+    else
+        samp_utils::ToggleCursor(false);
+}
+
+const std::string& WebView::GetURL()
 {
     if (!browser_)
-        return "";
+        return url_;
 
-    auto url = browser_->GetMainFrame()->GetURL();
+    url_ = browser_->GetMainFrame()->GetURL();
 
-    return url;
+    return url_;
 }
 
 void WebView::LoadURL(const std::string& url)

@@ -21,7 +21,7 @@ void WebCore::Initialize(IDirect3DDevice9* device)
     CefString(&settings.accept_language_list).FromASCII("en-US,en,ru-RU,ru");
 
     settings.no_sandbox = 1;
-    settings.multi_threaded_message_loop = 1;
+    settings.multi_threaded_message_loop = 0;
     settings.windowless_rendering_enabled = 1;
 
     settings.background_color = 0;
@@ -45,9 +45,20 @@ void WebCore::Shutdown()
     CefShutdown();
 }
 
-WebView* WebCore::Create(const std::string& url, int x, int y, int w, int h)
+bool WebCore::IsAnyInputActive() const
 {
-    auto webView = new WebView(device_, x, y, w, h);
+    for (auto* view : webViews_)
+    {
+        if (view->InputEnabled())
+            return true;
+    }
+
+    return false;
+}
+
+WebView* WebCore::Create(const std::string& url, int x, int y, int w, int h, WebView::FrameCallback onCreate)
+{
+    auto webView = new WebView(device_, x, y, w, h, onCreate);
     webView->LoadURL(url);
 
     webViews_.push_back(webView);
@@ -66,8 +77,15 @@ void WebCore::Close(WebView* view)
     }
 }
 
+void WebCore::Update()
+{
+    CefDoMessageLoopWork();
+    UpdateTextures();
+}
+
 void WebCore::UpdateTextures()
 {
+
     for (auto& view : webViews_)
         view->UpdateTexture();
 }
@@ -83,7 +101,15 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     for (auto& webView : webViews_)
     {
-        CefRefPtr<CefBrowserHost> host = webView->GetBrowser()->GetHost();
+        auto browser = webView->GetBrowser();
+
+        if (!browser)
+            continue;
+
+        auto host = browser->GetHost();
+
+        if (!host)
+            continue;
 
         if (msg >= WM_MOUSEMOVE && msg <= WM_MBUTTONUP || msg == WM_MOUSEWHEEL)
         {

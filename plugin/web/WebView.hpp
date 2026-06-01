@@ -20,7 +20,7 @@ class WebView : public CefClient,
     using JsonCallback = void(__stdcall*)(WebView*, const char*, const char**, int);
 
   public:
-    WebView(IDirect3DDevice9* device, int x, int y, int width, int height);
+    WebView(IDirect3DDevice9* device, int x, int y, int width, int height, FrameCallback onCreate = nullptr);
     ~WebView();
 
     // CefClient
@@ -64,6 +64,9 @@ class WebView : public CefClient,
 
     void UpdateTexture();
 
+    bool InputEnabled() const;
+    void SetInputEnabled(bool enabled);
+
     IDirect3DTexture9* GetTexture() const
     {
         return textureData_.texture;
@@ -74,7 +77,7 @@ class WebView : public CefClient,
         return browser_;
     }
 
-    std::string GetURL();
+    const std::string& GetURL();
     void LoadURL(const std::string& url);
     void ExecuteJS(const std::string& code);
 
@@ -97,9 +100,12 @@ class WebView : public CefClient,
 
     CefRefPtr<CefBrowser> browser_;
     std::string pendingUrl_;
+    std::string url_;
 
     int width_;
     int height_;
+
+    bool inputEnabled_{false};
 
     IDirect3DDevice9* device_{};
 
