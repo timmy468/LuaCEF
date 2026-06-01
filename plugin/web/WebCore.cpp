@@ -42,9 +42,12 @@ WebCore::~WebCore()
 
 void WebCore::Shutdown()
 {
-    webViews_.clear();
+    for (auto& view : webViews_)
+        Close(view);
 
-    CefShutdown();
+    // Don't call CefShutdown() here to avoid freeze.
+    // TerminateProcess (during quit) is called before CCore destruction anyways.
+    // CefShutdown();
 }
 
 bool WebCore::IsAnyInputActive() const
