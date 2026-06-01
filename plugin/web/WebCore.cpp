@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <string>
 
+#include <CSprite2d.h>
+
 void WebCore::Initialize(IDirect3DDevice9* device)
 {
     device_ = device;
@@ -80,7 +82,33 @@ void WebCore::Close(WebView* view)
 void WebCore::Update()
 {
     CefDoMessageLoopWork();
+
     UpdateTextures();
+    Render();
+}
+
+void WebCore::Render()
+{
+    for (auto& view : webViews_)
+    {
+        if (view->OffscreenRenderingEnabled())
+            continue;
+
+        if (!view->IsLoaded())
+            continue;
+
+        if (auto texture = view->GetTexture())
+        {
+            device_->SetTexture(0, texture);
+
+            CRect rect;
+            rect.left = view->GetX();
+            rect.top = view->GetY();
+            rect.right = view->GetX() + view->GetWidth();
+            rect.bottom = view->GetY() + view->GetHeight();
+            CSprite2d::DrawTxRect(rect, {255, 255, 255, 255});
+        }
+    }
 }
 
 void WebCore::UpdateTextures()

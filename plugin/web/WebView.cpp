@@ -96,6 +96,8 @@ void WebView::OnBeforeClose(CefRefPtr<CefBrowser>)
 
 void WebView::OnLoadEnd(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, int httpStatusCode)
 {
+    loaded_ = true;
+
     if (onLoading_)
         onLoading_(this, httpStatusCode);
 }

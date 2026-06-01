@@ -16,9 +16,6 @@ void Plugin::OnAttach(void* handle)
     plugin::Events::initRwEvent += [this]() { OnRenderInit(); };
     plugin::Events::d3dLostEvent += [this]() { OnD3DLost(); };
     plugin::Events::d3dResetEvent += [this]() { OnD3DReset(); };
-    plugin::Events::drawingEvent += [this]() { OnDrawingEvent(); };
-
-    InstallGameHooks();
 }
 
 void Plugin::OnDetach()
@@ -37,6 +34,9 @@ void Plugin::InstallGameHooks()
                                                             return hook.call_trampoline(
                                                                 std::forward<decltype(args)>(args)...);
                                                         });
+
+    const auto d3d9_device_vtable = *(void***)(GetD3DDevice());
+    static kthook::kthook_naked presentHook(d3d9_device_vtable[17], [this](const auto& hook) { OnDrawingEvent(); });
 }
 
 bool Plugin::IsInitialized() const
@@ -87,10 +87,12 @@ void Plugin::Close(WebView* view)
 void Plugin::OnRenderInit()
 {
     std::println(std::cout, "Initializing render...");
-
     webCore_->Initialize(GetD3DDevice());
-
     std::println(std::cout, "Render initialized.");
+
+    std::println(std::cout, "Installing game hooks...");
+    InstallGameHooks();
+    std::println(std::cout, "Game hooks installed.");
 }
 
 void Plugin::OnD3DLost()

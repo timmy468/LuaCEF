@@ -26,6 +26,7 @@ class WebCore
     void Close(WebView* view);
     void Update();
     void UpdateTextures();
+    void Render();
 
     bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     void OnDeviceLost();

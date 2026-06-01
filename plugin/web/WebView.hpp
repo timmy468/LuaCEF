@@ -67,6 +67,16 @@ class WebView : public CefClient,
     bool InputEnabled() const;
     void SetInputEnabled(bool enabled);
 
+    bool OffscreenRenderingEnabled() const
+    {
+        return offscreenRenderingEnabled_;
+    }
+
+    void SetOffscreenRenderingEnabled(bool enabled)
+    {
+        offscreenRenderingEnabled_ = enabled;
+    }
+
     IDirect3DTexture9* GetTexture() const
     {
         return textureData_.texture;
@@ -75,6 +85,34 @@ class WebView : public CefClient,
     CefRefPtr<CefBrowser> GetBrowser() const
     {
         return browser_;
+    }
+
+    int GetX() const
+    {
+        return x_;
+    }
+    int GetY() const
+    {
+        return y_;
+    }
+
+    int GetWidth() const
+    {
+        return width_;
+    }
+    int GetHeight() const
+    {
+        return height_;
+    }
+
+    bool IsLoading() const
+    {
+        return browser_ && browser_->IsLoading();
+    }
+
+    bool IsLoaded() const
+    {
+        return loaded_;
     }
 
     const std::string& GetURL();
@@ -102,10 +140,14 @@ class WebView : public CefClient,
     std::string pendingUrl_;
     std::string url_;
 
+    int x_;
+    int y_;
     int width_;
     int height_;
 
     bool inputEnabled_{false};
+    bool offscreenRenderingEnabled_{false};
+    bool loaded_{false};
 
     IDirect3DDevice9* device_{};
 
