@@ -109,7 +109,7 @@ std::string ProcessManager::GetSubprocessPath()
 {
     // Искать cef-subprocess.exe в текущей директории или в bin/Release
     std::vector<std::string> possible_paths = {
-        "cef-host.exe",
+        "luacef/cef-host.exe",
     };
 
     for (const auto& path : possible_paths)

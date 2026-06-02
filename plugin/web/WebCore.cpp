@@ -6,13 +6,15 @@
 
 #include <CSprite2d.h>
 
+RemoteWebView* gWebView = nullptr;
+
 void WebCore::Initialize(IDirect3DDevice9* device)
 {
     device_ = device;
 
-    // tood: test
-    auto webView = new RemoteWebView(device_, 0, 0, 1280, 720);
-    webViews_.push_back(webView);
+    // todo: test
+    gWebView = new RemoteWebView(device_, 0, 0, 1280, 720);
+    webViews_.push_back(gWebView);
 }
 
 WebCore::~WebCore()

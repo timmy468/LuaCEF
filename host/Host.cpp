@@ -17,7 +17,7 @@ bool Host::Initialize()
     memset(frame_, 0, sizeof(SharedFrame));
 
     //
-    std::string work_path = std::filesystem::current_path().string();
+    std::string work_path = std::filesystem::current_path().string() + "\\luacef";
     std::filesystem::create_directories(work_path + "\\cache");
 
     CefSettings settings;

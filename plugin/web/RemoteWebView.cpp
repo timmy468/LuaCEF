@@ -10,9 +10,6 @@
 RemoteWebView::RemoteWebView(IDirect3DDevice9* device, int x, int y, int width, int height, FrameCallback onCreate)
     : device_(device), width_(width), height_(height), x_(x), y_(y), onCreate_(onCreate)
 {
-    std::println(std::cout, "RemoteWebView::RemoteWebView() {:p} {:d} {:d} {:d} {:d}", (void*)device, x, y, width,
-                 height);
-
     auto hr = device_->CreateTexture(width, height, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &texture_,
                                      nullptr);
 
@@ -101,8 +98,6 @@ void RemoteWebView::OnDeviceReset()
         device_->CreateTexture(width_, height_, 1, D3DUSAGE_DYNAMIC, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &texture_,
                                nullptr);
     }
-
-    // data.dirty.store(true, std::memory_order_release);
 }
 
 void RemoteWebView::Update()

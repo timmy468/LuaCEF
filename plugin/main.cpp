@@ -4,6 +4,8 @@ PLUGIN_ENTRY_POINT(Plugin);
 
 #define API_EXPORT extern "C" __declspec(dllexport)
 
+extern RemoteWebView* gWebView;
+
 extern "C"
 {
     API_EXPORT const char* CEF_GetVersion()
@@ -46,16 +48,16 @@ extern "C"
     //     Plugin::GetInstance().Close(view);
     // }
 
-    // API_EXPORT IDirect3DTexture9* LuaCEF_GetTexture(WebView* view)
-    // {
-    //     if (!Plugin::GetInstance().IsInitialized())
-    //         return nullptr;
+    API_EXPORT IDirect3DTexture9* LuaCEF_GetTexture(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return nullptr;
 
-    //     if (!view)
-    //         return nullptr;
+        if (!gWebView)
+            return nullptr;
 
-    //     return view->GetTexture();
-    // }
+        return gWebView->GetTexture();
+    }
 
     // API_EXPORT bool LuaCEF_IsInputActive(WebView* view)
     // {
