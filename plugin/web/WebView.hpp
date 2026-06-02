@@ -39,10 +39,10 @@ class WebView : public CefClient,
         return this;
     }
 
-    // CefRefPtr<CefDisplayHandler> GetDisplayHandler() override
-    // {
-    //     return this;
-    // }
+    CefRefPtr<CefDisplayHandler> GetDisplayHandler() override
+    {
+        return this;
+    }
 
     // CefRenderHandler
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
@@ -147,7 +147,7 @@ class WebView : public CefClient,
 
     bool inputEnabled_{false};
     bool offscreenRenderingEnabled_{false};
-    bool loaded_{false};
+    std::atomic<bool> loaded_{false};
 
     IDirect3DDevice9* device_{};
 

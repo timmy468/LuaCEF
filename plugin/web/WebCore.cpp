@@ -92,6 +92,7 @@ void WebCore::Update()
 
 void WebCore::Render()
 {
+    // TODO: fix SF & white screen
     for (auto& view : webViews_)
     {
         if (view->OffscreenRenderingEnabled())
