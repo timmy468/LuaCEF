@@ -2,9 +2,10 @@
 add_library(LuaCEFPlugin SHARED)
 
 target_sources(LuaCEFPlugin PRIVATE
+    process/ProcessManager.cpp
     utils/samp_utils.cpp
     web/WebCore.cpp
-    web/WebView.cpp
+    web/RemoteWebView.cpp
 
     main.cpp
     Plugin.cpp
@@ -43,6 +44,7 @@ FetchContent_MakeAvailable(plugintmplt xbyak ktsignal kthook sampapi)
 find_package(plugin-sdk REQUIRED)
 
 target_link_libraries(LuaCEFPlugin PRIVATE
+    cef-ipc
     plugintmplt
     pluginsdk::gtasa
     kthook
@@ -56,6 +58,7 @@ target_include_directories(LuaCEFPlugin PRIVATE
 target_compile_features(LuaCEFPlugin PRIVATE cxx_std_23)
 
 set_target_properties(LuaCEFPlugin PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${LUACEF_DEPLOY_DIR}
     SUFFIX .asi
     OUTPUT_NAME luacef
 )

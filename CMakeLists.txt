@@ -19,5 +19,10 @@ link_libraries(
     ${CEF_ROOT}/Release/libcef.lib
 )
 
+set(LUACEF_DEPLOY_DIR
+    "${CMAKE_BINARY_DIR}/deploy")
+
+add_subdirectory(ipc)
+add_subdirectory(host)
 add_subdirectory(plugin)
 add_subdirectory(subprocess)

@@ -16,89 +16,89 @@ extern "C"
         return Plugin::GetInstance().IsInitialized();
     }
 
-    API_EXPORT bool LuaCEF_IsAnyInputActive()
-    {
-        return Plugin::GetInstance().IsAnyInputActive();
-    }
+    // API_EXPORT bool LuaCEF_IsAnyInputActive()
+    // {
+    //     return Plugin::GetInstance().IsAnyInputActive();
+    // }
 
-    API_EXPORT WebView* LuaCEF_Create(const char* url, int x, int y, int width, int height,
-                                      WebView::FrameCallback onCreate)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return nullptr;
+    // API_EXPORT WebView* LuaCEF_Create(const char* url, int x, int y, int width, int height,
+    //                                   WebView::FrameCallback onCreate)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return nullptr;
 
-        return Plugin::GetInstance().Create(url, x, y, width, height, onCreate);
-    }
+    //     return Plugin::GetInstance().Create(url, x, y, width, height, onCreate);
+    // }
 
-    API_EXPORT WebView* LuaCEF_CreateFullscreen(const char* url, WebView::FrameCallback onCreate)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return nullptr;
+    // API_EXPORT WebView* LuaCEF_CreateFullscreen(const char* url, WebView::FrameCallback onCreate)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return nullptr;
 
-        return Plugin::GetInstance().CreateFullscreen(url, onCreate);
-    }
+    //     return Plugin::GetInstance().CreateFullscreen(url, onCreate);
+    // }
 
-    API_EXPORT void LuaCEF_Close(WebView* view)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return;
+    // API_EXPORT void LuaCEF_Close(WebView* view)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return;
 
-        Plugin::GetInstance().Close(view);
-    }
+    //     Plugin::GetInstance().Close(view);
+    // }
 
-    API_EXPORT IDirect3DTexture9* LuaCEF_GetTexture(WebView* view)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return nullptr;
+    // API_EXPORT IDirect3DTexture9* LuaCEF_GetTexture(WebView* view)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return nullptr;
 
-        if (!view)
-            return nullptr;
+    //     if (!view)
+    //         return nullptr;
 
-        return view->GetTexture();
-    }
+    //     return view->GetTexture();
+    // }
 
-    API_EXPORT bool LuaCEF_IsInputActive(WebView* view)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return false;
+    // API_EXPORT bool LuaCEF_IsInputActive(WebView* view)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return false;
 
-        if (!view)
-            return false;
+    //     if (!view)
+    //         return false;
 
-        return view->InputEnabled();
-    }
+    //     return view->InputEnabled();
+    // }
 
-    API_EXPORT void LuaCEF_SetInputActive(WebView* view, bool active)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return;
+    // API_EXPORT void LuaCEF_SetInputActive(WebView* view, bool active)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return;
 
-        if (!view)
-            return;
+    //     if (!view)
+    //         return;
 
-        view->SetInputEnabled(active);
-    }
+    //     view->SetInputEnabled(active);
+    // }
 
-    API_EXPORT const char* LuaCEF_GetURL(WebView* view)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return nullptr;
+    // API_EXPORT const char* LuaCEF_GetURL(WebView* view)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return nullptr;
 
-        if (!view)
-            return nullptr;
+    //     if (!view)
+    //         return nullptr;
 
-        auto& url_ = view->GetURL();
-        return url_.c_str();
-    }
+    //     auto& url_ = view->GetURL();
+    //     return url_.c_str();
+    // }
 
-    API_EXPORT void LuaCEF_LoadURL(WebView* view, const char* url)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return;
+    // API_EXPORT void LuaCEF_LoadURL(WebView* view, const char* url)
+    // {
+    //     if (!Plugin::GetInstance().IsInitialized())
+    //         return;
 
-        if (!view)
-            return;
+    //     if (!view)
+    //         return;
 
-        view->LoadURL(url);
-    }
+    //     view->LoadURL(url);
+    // }
 }

@@ -17,9 +17,9 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
 
     bool IsInitialized() const;
     bool IsAnyInputActive() const;
-    WebView* Create(const char* url, int x, int y, int width, int height, WebView::FrameCallback onCreate);
-    WebView* CreateFullscreen(const char* url, WebView::FrameCallback onCreate);
-    void Close(WebView* view);
+    RemoteWebView* Create(const char* url, int x, int y, int width, int height, RemoteWebView::FrameCallback onCreate);
+    RemoteWebView* CreateFullscreen(const char* url, RemoteWebView::FrameCallback onCreate);
+    void Close(RemoteWebView* view);
 
   private:
     void InstallGameHooks();

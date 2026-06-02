@@ -6,7 +6,7 @@
 
 #include <d3d9.h>
 
-#include "WebView.hpp"
+#include "RemoteWebView.hpp"
 
 class WebCore
 {
@@ -20,19 +20,13 @@ class WebCore
         return device_ != nullptr;
     }
 
-    bool IsAnyInputActive() const;
-
-    WebView* Create(const std::string& url, int x, int y, int w, int h, WebView::FrameCallback onCreate);
-    void Close(WebView* view);
     void Update();
     void UpdateTextures();
     void Render();
-
-    bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     void OnDeviceLost();
     void OnDeviceReset();
 
   private:
     IDirect3DDevice9* device_{};
-    std::vector<WebView*> webViews_;
+    std::vector<RemoteWebView*> webViews_;
 };

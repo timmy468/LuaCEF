@@ -44,45 +44,45 @@ bool Plugin::IsInitialized() const
     return webCore_ != nullptr && webCore_->IsInitialized();
 }
 
-bool Plugin::IsAnyInputActive() const
-{
-    if (!IsInitialized())
-        return false;
+// bool Plugin::IsAnyInputActive() const
+// {
+//     if (!IsInitialized())
+//         return false;
 
-    return webCore_->IsAnyInputActive();
-}
+//     return webCore_->IsAnyInputActive();
+// }
 
-WebView* Plugin::Create(const char* url, int x, int y, int width, int height, WebView::FrameCallback onCreate)
-{
-    if (!IsInitialized())
-        return nullptr;
+// WebView* Plugin::Create(const char* url, int x, int y, int width, int height, WebView::FrameCallback onCreate)
+// {
+//     if (!IsInitialized())
+//         return nullptr;
 
-    std::println(std::cout, "Creating web view with URL: {}, x: {}, y: {}, width: {}, height: {}", url, x, y, width,
-                 height);
+//     std::println(std::cout, "Creating web view with URL: {}, x: {}, y: {}, width: {}, height: {}", url, x, y, width,
+//                  height);
 
-    auto webView = webCore_->Create(url, x, y, width, height, onCreate);
-    return webView;
-}
+//     auto webView = webCore_->Create(url, x, y, width, height, onCreate);
+//     return webView;
+// }
 
-WebView* Plugin::CreateFullscreen(const char* url, WebView::FrameCallback onCreate)
-{
-    if (!IsInitialized())
-        return nullptr;
+// WebView* Plugin::CreateFullscreen(const char* url, WebView::FrameCallback onCreate)
+// {
+//     if (!IsInitialized())
+//         return nullptr;
 
-    std::println(std::cout, "Creating fullscreen web view with URL: {}", url);
+//     std::println(std::cout, "Creating fullscreen web view with URL: {}", url);
 
-    auto webView = webCore_->Create(url, 0, 0, RsGlobal.maximumWidth, RsGlobal.maximumHeight, onCreate);
-    return webView;
-}
+//     auto webView = webCore_->Create(url, 0, 0, RsGlobal.maximumWidth, RsGlobal.maximumHeight, onCreate);
+//     return webView;
+// }
 
-void Plugin::Close(WebView* view)
-{
-    if (!IsInitialized())
-        return;
+// void Plugin::Close(WebView* view)
+// {
+//     if (!IsInitialized())
+//         return;
 
-    std::println(std::cout, "Closing web view.");
-    webCore_->Close(view);
-}
+//     std::println(std::cout, "Closing web view.");
+//     webCore_->Close(view);
+// }
 
 void Plugin::OnRenderInit()
 {
@@ -119,5 +119,5 @@ void Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     // std::println(std::cout, "WndProc called with hwnd: {}, msg: {}, wParam: {}, lParam: {}", hwnd, msg, wParam,
     // lParam);
 
-    webCore_->OnWndProc(hwnd, msg, wParam, lParam);
+    // webCore_->OnWndProc(hwnd, msg, wParam, lParam);
 }
