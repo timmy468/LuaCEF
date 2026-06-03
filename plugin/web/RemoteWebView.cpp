@@ -16,17 +16,7 @@ RemoteWebView::RemoteWebView(BrowserId id, IDirect3DDevice9* device, int x, int 
 
 RemoteWebView::~RemoteWebView()
 {
-    if (texture_)
-    {
-        texture_->Release();
-        texture_ = nullptr;
-    }
-
-    // if (browser_)
-    // {
-    //     browser_->GetHost()->CloseBrowser(true);
-    //     browser_ = nullptr;
-    // }
+    DeleteTexture();
 }
 
 void RemoteWebView::AttachBrowser()
@@ -48,11 +38,7 @@ void RemoteWebView::Close()
 
 void RemoteWebView::OnDeviceLost()
 {
-    if (texture_)
-    {
-        texture_->Release();
-        texture_ = nullptr;
-    }
+    DeleteTexture();
 }
 
 void RemoteWebView::OnDeviceReset()
@@ -124,5 +110,14 @@ void RemoteWebView::CreateTexture(uint32_t width, uint32_t height)
     if (FAILED(hr))
     {
         std::println(std::cerr, "CreateTexture failed {:08X}", static_cast<uint32_t>(hr));
+    }
+}
+
+void RemoteWebView::DeleteTexture()
+{
+    if (texture_)
+    {
+        texture_->Release();
+        texture_ = nullptr;
     }
 }
