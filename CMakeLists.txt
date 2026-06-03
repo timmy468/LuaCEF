@@ -19,10 +19,26 @@ link_libraries(
     ${CEF_ROOT}/Release/libcef.lib
 )
 
-set(LUACEF_DEPLOY_DIR
-    "${CMAKE_BINARY_DIR}/deploy")
+set(LUACEF_DEPLOY_DIR "${CMAKE_BINARY_DIR}/deploy")
+set(LUACEF_CEF_DIR "${LUACEF_DEPLOY_DIR}/luacef")
 
 add_subdirectory(ipc)
 add_subdirectory(host)
 add_subdirectory(plugin)
 add_subdirectory(subprocess)
+
+foreach(CONFIG Debug Release RelWithDebInfo MinSizeRel)
+    string(TOUPPER ${CONFIG} CONFIG_UPPER)
+
+    set_target_properties(LuaCEFPlugin PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${LUACEF_DEPLOY_DIR}/$<CONFIG>"
+    )
+
+    set_target_properties(LuaCEFHost PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${LUACEF_DEPLOY_DIR}/$<CONFIG>/luacef"
+    )
+
+    set_target_properties(LuaCEFSubprocess PROPERTIES
+        RUNTIME_OUTPUT_DIRECTORY "${LUACEF_DEPLOY_DIR}/$<CONFIG>/luacef"
+    )
+endforeach()

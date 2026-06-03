@@ -8,9 +8,14 @@
 #include "SharedFrame.hpp"
 #include "process/ProcessManager.hpp"
 
+#include "IPCClient.hpp"
+#include "SharedMemory.hpp"
+
 class RemoteWebView
 {
   public:
+    using BrowserId = uint32_t;
+
     using FrameCallback = void(__stdcall*)(RemoteWebView*);
 
     using LoadingCallback = void(__stdcall*)(RemoteWebView*, int);
@@ -18,10 +23,12 @@ class RemoteWebView
     using JsonCallback = void(__stdcall*)(RemoteWebView*, const char*, const char**, int);
 
   public:
-    RemoteWebView(IDirect3DDevice9* device, int x, int y, int width, int height, FrameCallback onCreate = nullptr);
+    RemoteWebView(BrowserId id, IDirect3DDevice9* device, int x, int y, int width, int height,
+                  FrameCallback onCreate = nullptr);
     ~RemoteWebView();
 
     // Export
+    void AttachBrowser();
     void Close();
     void OnDeviceLost();
     void OnDeviceReset();
@@ -71,6 +78,8 @@ class RemoteWebView
     }
 
   private:
+    BrowserId browserId_;
+
     IDirect3DTexture9* texture_{};
 
     std::string pendingUrl_;
@@ -91,9 +100,10 @@ class RemoteWebView
     FrameCallback onClose_{};
     LoadingCallback onLoading_{};
 
+    ipc::SharedMemory sharedMemory_;
     SharedFrame* frame_{};
-    HANDLE mapping_{};
     uint32_t lastSequence_{};
 
-    std::shared_ptr<ProcessManager> processManager_;
+  private:
+    void CreateTexture(uint32_t width, uint32_t height);
 };

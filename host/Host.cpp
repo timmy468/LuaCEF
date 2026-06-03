@@ -2,21 +2,38 @@
 
 #include <filesystem>
 #include <format>
+#include <thread>
 
 #include <Windows.h>
 #include <cef_app.h>
 
 bool Host::Initialize()
 {
-    constexpr int id = 0; // TODO: generate unique ID for each view
-    auto name = std::format("LuaCEF_Frame_{}", id);
+    InitCef();
 
-    mapping_ = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, sizeof(SharedFrame), name.c_str());
+    // Создать обработчик IPC команд
+    ipcHandler_ = std::make_shared<IPCBrowserHandler>();
 
-    frame_ = static_cast<SharedFrame*>(MapViewOfFile(mapping_, FILE_MAP_ALL_ACCESS, 0, 0, 0));
-    memset(frame_, 0, sizeof(SharedFrame));
+    // Запустить IPC сервер
+    ipcServer_ = std::make_shared<ipc::IPCServer>(ipcHandler_);
 
-    //
+    // Запустить сервер в отдельном потоке
+    std::thread server_thread([this]() { ipcServer_->Start(R"(\\.\pipe\LuaCEF_IPC)", 8); });
+    server_thread.detach(); // Отпустить поток
+
+    return true;
+}
+
+void Host::Run()
+{
+    while (true)
+    {
+        Sleep(100);
+    }
+}
+
+void Host::InitCef()
+{
     std::string work_path = std::filesystem::current_path().string() + "\\luacef";
     std::filesystem::create_directories(work_path + "\\cache");
 
@@ -41,25 +58,4 @@ bool Host::Initialize()
     CefMainArgs args(GetModuleHandle(nullptr));
 
     CefInitialize(args, settings, nullptr, nullptr);
-
-    // Create the browser view
-    browserView_ = new BrowserView(frame_, 1280, 720);
-
-    CefWindowInfo info;
-
-    info.SetAsWindowless(nullptr);
-
-    CefBrowserSettings browserSettings;
-
-    CefBrowserHost::CreateBrowser(info, browserView_, "https://google.com", browserSettings, nullptr, nullptr);
-
-    return true;
-}
-
-void Host::Run()
-{
-    while (true)
-    {
-        Sleep(100);
-    }
 }

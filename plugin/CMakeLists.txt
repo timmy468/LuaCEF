@@ -58,7 +58,6 @@ target_include_directories(LuaCEFPlugin PRIVATE
 target_compile_features(LuaCEFPlugin PRIVATE cxx_std_23)
 
 set_target_properties(LuaCEFPlugin PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${LUACEF_DEPLOY_DIR}
     SUFFIX .asi
     OUTPUT_NAME luacef
 )

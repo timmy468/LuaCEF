@@ -29,7 +29,8 @@ bool ProcessManager::Start()
     // Создать процесс
     STARTUPINFOA startup_info{};
     startup_info.cb = sizeof(STARTUPINFOA);
-    startup_info.dwFlags = STARTF_USESHOWWINDOW;
+    // todo: fix
+    // startup_info.dwFlags = STARTF_USESHOWWINDOW;
     startup_info.wShowWindow = SW_HIDE; // Скрыть окно subprocess
 
     PROCESS_INFORMATION process_info{};

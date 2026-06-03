@@ -6,15 +6,39 @@
 
 #include <CSprite2d.h>
 
-RemoteWebView* gWebView = nullptr;
-
 void WebCore::Initialize(IDirect3DDevice9* device)
 {
     device_ = device;
 
-    // todo: test
-    gWebView = new RemoteWebView(device_, 0, 0, 1280, 720);
-    webViews_.push_back(gWebView);
+    processManager_ = std::make_unique<ProcessManager>();
+    if (!processManager_->Start())
+    {
+        std::cerr << "Failed to start CEF subprocess" << std::endl;
+        device_ = nullptr;
+        return;
+    }
+
+    // Подождать пока subprocess инициализируется (max 5 секунд)
+    for (int i = 0; i < 50; ++i)
+    {
+        Sleep(100);
+
+        // Создать IPC клиент и подключиться к subprocess
+        ipcClient_ = std::make_unique<ipc::IPCClient>();
+        if (ipcClient_->Connect())
+        {
+            std::cout << "WebCore initialized, connected to subprocess" << std::endl;
+
+            // Запустить поток для получения сообщений
+            StartMessageReceiveThread();
+            return;
+        }
+    }
+
+    std::cerr << "Failed to connect to CEF subprocess (timeout)" << std::endl;
+    processManager_->Stop();
+    processManager_ = nullptr;
+    device_ = nullptr;
 }
 
 WebCore::~WebCore()
@@ -24,12 +48,14 @@ WebCore::~WebCore()
 
 void WebCore::Shutdown()
 {
+    if (processManager_)
+    {
+        processManager_->Stop();
+        processManager_ = nullptr;
+    }
+
     // for (auto& view : webViews_)
     //     Close(view);
-
-    // Don't call CefShutdown() here to avoid freeze.
-    // TerminateProcess (during quit) is called before CCore destruction anyways.
-    // CefShutdown();
 }
 
 // bool WebCore::IsAnyInputActive() const
@@ -43,31 +69,59 @@ void WebCore::Shutdown()
 //     return false;
 // }
 
-// WebView* WebCore::Create(const std::string& url, int x, int y, int w, int h, WebView::FrameCallback onCreate)
-// {
-//     auto webView = new WebView(device_, x, y, w, h, onCreate);
-//     webView->LoadURL(url);
+RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int h,
+                               RemoteWebView::FrameCallback onCreate)
+{
+    ipc::CreateWebViewCmd cmd{};
 
-//     webViews_.push_back(webView);
+    cmd.id = nextBrowserId_++;
+    cmd.x = x;
+    cmd.y = y;
 
-//     return webView;
-// }
+    cmd.width = w;
+    cmd.height = h;
 
-// void WebCore::Close(WebView* view)
-// {
-//     auto it = std::find(webViews_.begin(), webViews_.end(), view);
-//     if (it != webViews_.end())
-//     {
-//         (*it)->Close();
-//         delete *it;
-//         webViews_.erase(it);
-//     }
-// }
+    strcpy_s(cmd.url, sizeof(cmd.url), url.c_str());
+
+    auto* webView = new RemoteWebView(cmd.id, device_, x, y, w, h, onCreate);
+    webViews_.push_back(webView);
+
+    webviewIdMap_[cmd.id] = webView;
+
+    AddTaskToMessageThread(
+        [this, cmd]()
+        {
+            std::println(std::cout, "Sending CreateWebView command");
+            if (!ipcClient_->Send(ipc::CommandType::CreateWebView, cmd))
+            {
+                std::cerr << "Failed to send CreateWebView" << std::endl;
+
+                return;
+            }
+            std::println(std::cout, "CreateWebView command sent");
+        });
+
+    std::println(std::cout, "WebView created with id {}", cmd.id);
+
+    return webView;
+}
+
+void WebCore::Close(RemoteWebView* view)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
+    {
+        (*it)->Close();
+        delete *it;
+        webViews_.erase(it);
+    }
+}
 
 void WebCore::Update()
 {
+    ProcessGameThreadTasks();
     UpdateTextures();
-    Render();
+    // Render();
 }
 
 void WebCore::Render()
@@ -221,4 +275,144 @@ void WebCore::OnDeviceReset()
 {
     for (auto& view : webViews_)
         view->OnDeviceReset();
+}
+
+void WebCore::StartMessageReceiveThread()
+{
+    messageThreadRunning_ = true;
+    std::thread t([this]() { MessageReceiveThreadProc(); });
+    t.detach();
+}
+
+void WebCore::MessageReceiveThreadProc()
+{
+    std::cout << "Message thread started\n";
+
+    while (messageThreadRunning_)
+    {
+        if (!ipcClient_ || !ipcClient_->IsConnected())
+            break;
+
+        ProcessMessageThreadTasks();
+
+        if (!ipcClient_->HasData())
+            continue;
+
+        ipc::MessageHeader header{};
+
+        std::cout << "Waiting header...\n";
+        if (!ipcClient_->ReceiveHeader(header))
+        {
+            std::cout << "Receive failed\n";
+            continue;
+        }
+
+        std::cout << "Header received\n";
+
+        switch (header.type)
+        {
+        case ipc::CommandType::CreateWebViewResponse:
+        {
+            if (header.payloadSize != sizeof(ipc::CreateWebViewResponse))
+            {
+                std::cerr << "Invalid CreateWebViewResponse payload size" << std::endl;
+                break;
+            }
+
+            ipc::CreateWebViewResponse response{};
+
+            if (!ipcClient_->ReceivePayload(response))
+            {
+                std::cerr << "Failed to receive CreateWebViewResponse payload" << std::endl;
+                break;
+            }
+
+            const uint32_t browserId = response.id;
+
+            std::cout << "Attaching browser with id " << browserId << std::endl;
+
+            AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->AttachBrowser(); });
+        }
+            // case ipc::CommandType::FrameReady:
+            // {
+            //     if (header.payloadSize != sizeof(ipc::FrameReadyCmd))
+            //     {
+            //         std::cerr << "Invalid FrameReady payload size" << std::endl;
+
+            //         break;
+            //     }
+
+            //     ipc::FrameReadyCmd frameReady{};
+
+            //     if (!ipcClient_->ReceivePayload(frameReady))
+            //     {
+            //         std::cerr << "Failed to receive FrameReady payload" << std::endl;
+
+            //         break;
+            //     }
+
+            //     auto it = webviewIdMap_.find(frameReady.id);
+
+            //     if (it != webviewIdMap_.end())
+            //     {
+            //         it->second->OnRemoteFrameReady(frameReady.width, frameReady.height,
+            //         frameReady.shared_memory_offset,
+            //                                        frameReady.frame_size);
+            //     }
+
+            //     break;
+            // }
+
+        default:
+        {
+            // std::array<uint8_t, 8192> dummy{};
+
+            // if (header.payloadSize)
+            // {
+            //     ipcClient_->ReceiveRaw(dummy.data(), header.payloadSize);
+            // }
+
+            break;
+        }
+        }
+        Sleep(10);
+    }
+}
+
+void WebCore::ProcessGameThreadTasks()
+{
+    std::lock_guard lock(gameThreadTasks_.mutex);
+
+    for (auto& task : gameThreadTasks_.tasks)
+    {
+        task();
+    }
+
+    gameThreadTasks_.tasks.clear();
+}
+
+void WebCore::AddTaskToGameThread(std::function<void()> task)
+{
+    std::lock_guard lock(gameThreadTasks_.mutex);
+
+    gameThreadTasks_.tasks.push_back(task);
+}
+
+void WebCore::ProcessMessageThreadTasks()
+{
+    std::lock_guard lock(messageThreadTasks_.mutex);
+
+    for (auto& task : messageThreadTasks_.tasks)
+    {
+        task();
+    }
+
+    messageThreadTasks_.tasks.clear();
+}
+
+void WebCore::AddTaskToMessageThread(std::function<void()> task)
+{
+    std::lock_guard lock(messageThreadTasks_.mutex);
+
+    messageThreadTasks_.tasks.push_back(task);
 }

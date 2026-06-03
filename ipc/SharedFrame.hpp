@@ -11,6 +11,7 @@ struct FrameHeader
     uint32_t height{};
 };
 
+// todo: move to config
 constexpr uint32_t MAX_WIDTH = 1920;
 constexpr uint32_t MAX_HEIGHT = 1080;
 

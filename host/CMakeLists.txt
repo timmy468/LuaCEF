@@ -1,18 +1,18 @@
 add_executable(LuaCEFHost 
     BrowserView.cpp
     Host.cpp
+    IPCBrowserHandler.cpp
     main.cpp
 )
 
 target_link_libraries(LuaCEFHost
     cef-ipc
-) 
+)
 
 target_compile_features(LuaCEFHost PRIVATE cxx_std_23)
 
 set_target_properties(LuaCEFHost PROPERTIES
     OUTPUT_NAME "cef-host"
-    RUNTIME_OUTPUT_DIRECTORY ${LUACEF_DEPLOY_DIR}
     WIN32_EXECUTABLE TRUE 
     LINK_FLAGS "/ENTRY:WinMainCRTStartup"
 )
