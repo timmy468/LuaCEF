@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.15)
 project(LuaCEF)
 
+add_compile_definitions(
+    WIN32_LEAN_AND_MEAN
+    NOMINMAX
+)
+
 set(CEF_ROOT "${CMAKE_SOURCE_DIR}/third_party/cef")
 set(CEF_RUNTIME_LIBRARY_FLAG
     "/MD"

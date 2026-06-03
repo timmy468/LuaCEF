@@ -1,2 +1,2 @@
-CEF version: 100.0.24+g0783cf8+chromium-100.0.4896.127
+CEF version: 144.0.27+g3fae261+chromium-144.0.7559.254
 Download: https://cef-builds.spotifycdn.com/index.html#windows32
