@@ -11,6 +11,8 @@ BrowserView::BrowserView(uint32_t id, int32_t width, int32_t height) : width_(wi
     memset(sharedMemory_.GetBuffer(), 0, sharedMemory_.GetSize());
 
     frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
+
+    std::println(std::cout, "BrowserView::BrowserView() {:p} {:d} {:d}", (void*)this, width, height);
 }
 
 void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectList&, const void* buffer, int width,
