@@ -88,6 +88,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         {
             if (auto browser = it->second->GetBrowser())
             {
+                // todo: response
                 CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<CefBrowser> browser)
                                                    { browser->GetHost()->CloseBrowser(true); }, browser));
             }
@@ -130,34 +131,114 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         {
             if (auto browser = it->second->GetBrowser())
             {
-                // browser->GetMainFrame()->LoadURL(cmd->url);
+                const std::string url = cmd->url;
+                // Todo: response
+                CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<CefBrowser> browser, std::string url)
+                                                   { browser->GetMainFrame()->LoadURL(url); }, browser, url));
             }
         }
 
         break;
     }
 
-        // case ipc::CommandType::ExecuteJS:
-        // {
-        //     if (payloadSize != sizeof(ipc::ExecuteJSCmd))
-        //         return;
+    case ipc::CommandType::ReloadPage:
+    {
+        if (payloadSize != sizeof(ipc::ReloadPageCmd))
+            return;
 
-        //     auto* cmd = static_cast<const ipc::ExecuteJSCmd*>(payload);
+        auto* cmd = static_cast<const ipc::ReloadPageCmd*>(payload);
 
-        //     auto it = browsers_.find(cmd->id);
+        auto it = browsers_.find(cmd->id);
 
-        //     if (it != browsers_.end())
-        //     {
-        //         auto browser = it->second->GetBrowser();
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                const bool ignoreCache = cmd->ignoreCache;
 
-        //         if (browser)
-        //         {
-        //             browser->GetMainFrame()->ExecuteJavaScript(cmd->code, {}, 0);
-        //         }
-        //     }
+                CefPostTask(TID_UI, base::BindOnce(
+                                        [](CefRefPtr<CefBrowser> browser, bool ignoreCache)
+                                        {
+                                            if (ignoreCache)
+                                                browser->ReloadIgnoreCache();
+                                            else
+                                                browser->Reload();
+                                        },
+                                        browser, ignoreCache));
+            }
+        }
 
-        //     break;
-        // }
+        break;
+    }
+
+    case ipc::CommandType::GoBack:
+    {
+        if (payloadSize != sizeof(ipc::GoBackCmd))
+            return;
+
+        auto* cmd = static_cast<const ipc::GoBackCmd*>(payload);
+
+        auto it = browsers_.find(cmd->id);
+
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<CefBrowser> browser) { browser->GoBack(); }, browser));
+            }
+        }
+
+        break;
+    }
+
+    case ipc::CommandType::GoForward:
+    {
+        if (payloadSize != sizeof(ipc::GoForwardCmd))
+            return;
+
+        auto* cmd = static_cast<const ipc::GoForwardCmd*>(payload);
+
+        auto it = browsers_.find(cmd->id);
+
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI,
+                            base::BindOnce([](CefRefPtr<CefBrowser> browser) { browser->GoForward(); }, browser));
+            }
+        }
+
+        break;
+    }
+
+    case ipc::CommandType::ExecuteJS:
+    {
+        if (payloadSize != sizeof(ipc::ExecuteJSCmd))
+            return;
+
+        auto* cmd = static_cast<const ipc::ExecuteJSCmd*>(payload);
+
+        auto it = browsers_.find(cmd->id);
+
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI, base::BindOnce(
+                                        [](CefRefPtr<CefBrowser> browser, const std::string& code)
+                                        {
+                                            if (auto mainFrame = browser->GetMainFrame())
+                                            {
+                                                mainFrame->ExecuteJavaScript(code, {}, 0);
+                                            }
+                                        },
+                                        browser, cmd->code));
+            }
+        }
+
+        break;
+    }
 
         // case ipc::CommandType::Ping:
         // {

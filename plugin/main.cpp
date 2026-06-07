@@ -158,26 +158,70 @@ extern "C"
         view->SetRect(x, y, width, height);
     }
 
-    // API_EXPORT const char* LuaCEF_GetURL(RemoteWebView* view)
-    // {
-    //     if (!Plugin::GetInstance().IsInitialized())
-    //         return nullptr;
+    API_EXPORT const char* LuaCEF_GetURL(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return nullptr;
 
-    //     if (!view)
-    //         return nullptr;
+        if (!view)
+            return nullptr;
 
-    //     auto& url_ = view->GetURL();
-    //     return url_.c_str();
-    // }
+        auto& url_ = view->GetURL();
+        return url_.c_str();
+    }
 
-    // API_EXPORT void LuaCEF_LoadURL(RemoteWebView* view, const char* url)
-    // {
-    //     if (!Plugin::GetInstance().IsInitialized())
-    //         return;
+    API_EXPORT void LuaCEF_LoadURL(RemoteWebView* view, const char* url)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
 
-    //     if (!view)
-    //         return;
+        if (!view)
+            return;
 
-    //     view->LoadURL(url);
-    // }
+        Plugin::GetInstance().GetWebCore()->LoadURL(view, url);
+    }
+
+    API_EXPORT void LuaCEF_ReloadPage(RemoteWebView* view, bool ignoreCache)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        Plugin::GetInstance().GetWebCore()->ReloadPage(view, ignoreCache);
+    }
+
+    API_EXPORT void GoBack(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        Plugin::GetInstance().GetWebCore()->GoBack(view);
+    }
+
+    API_EXPORT void GoForward(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        Plugin::GetInstance().GetWebCore()->GoForward(view);
+    }
+
+    API_EXPORT void LuaCEF_ExecuteJS(RemoteWebView* view, const char* code)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        Plugin::GetInstance().GetWebCore()->ExecuteJS(view, code);
+    }
 }

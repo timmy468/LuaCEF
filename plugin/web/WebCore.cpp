@@ -121,6 +121,116 @@ void WebCore::Close(RemoteWebView* view)
     }
 }
 
+void WebCore::LoadURL(RemoteWebView* view, const std::string& url)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
+    {
+        (*it)->SetURL(url);
+
+        ipc::LoadURLCmd cmd{};
+        cmd.id = view->GetBrowserId();
+        strcpy_s(cmd.url, sizeof(cmd.url), url.c_str());
+
+        AddTaskToMessageThread(
+            [this, cmd]()
+            {
+                std::println(std::cout, "Sending LoadURL command");
+                if (!ipcClient_->Send(ipc::CommandType::LoadURL, cmd))
+                {
+                    std::cerr << "Failed to send LoadURL command" << std::endl;
+                }
+                std::println(std::cout, "LoadURL command sent");
+            });
+    }
+}
+
+void WebCore::ReloadPage(RemoteWebView* view, bool ignoreCache)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
+    {
+        ipc::ReloadPageCmd cmd{};
+        cmd.id = view->GetBrowserId();
+        cmd.ignoreCache = ignoreCache;
+
+        AddTaskToMessageThread(
+            [this, cmd]()
+            {
+                std::println(std::cout, "Sending ReloadPage command");
+                if (!ipcClient_->Send(ipc::CommandType::ReloadPage, cmd))
+                {
+                    std::cerr << "Failed to send ReloadPage command" << std::endl;
+                }
+                std::println(std::cout, "ReloadPage command sent");
+            });
+    }
+}
+
+void WebCore::GoBack(RemoteWebView* view)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
+    {
+        ipc::GoBackCmd cmd{};
+        cmd.id = view->GetBrowserId();
+
+        AddTaskToMessageThread(
+            [this, cmd]()
+            {
+                std::println(std::cout, "Sending GoBack command");
+                if (!ipcClient_->Send(ipc::CommandType::GoBack, cmd))
+                {
+                    std::cerr << "Failed to send GoBack command" << std::endl;
+                }
+                std::println(std::cout, "GoBack command sent");
+            });
+    }
+}
+
+void WebCore::GoForward(RemoteWebView* view)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
+    {
+        ipc::GoForwardCmd cmd{};
+        cmd.id = view->GetBrowserId();
+
+        AddTaskToMessageThread(
+            [this, cmd]()
+            {
+                std::println(std::cout, "Sending GoForward command");
+                if (!ipcClient_->Send(ipc::CommandType::GoForward, cmd))
+                {
+                    std::cerr << "Failed to send GoForward command" << std::endl;
+                }
+                std::println(std::cout, "GoForward command sent");
+            });
+    }
+}
+
+void WebCore::ExecuteJS(RemoteWebView* view, const std::string& code)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
+    {
+        ipc::ExecuteJSCmd cmd{};
+        cmd.id = view->GetBrowserId();
+        strcpy_s(cmd.code, sizeof(cmd.code), code.c_str());
+
+        AddTaskToMessageThread(
+            [this, cmd]()
+            {
+                std::println(std::cout, "Sending ExecuteJS command");
+                if (!ipcClient_->Send(ipc::CommandType::ExecuteJS, cmd))
+                {
+                    std::cerr << "Failed to send ExecuteJS command" << std::endl;
+                }
+                std::println(std::cout, "ExecuteJS command sent");
+            });
+    }
+}
+
 bool WebCore::IsAnyInputActive() const
 {
     for (auto* view : webViews_)

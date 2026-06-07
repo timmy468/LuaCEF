@@ -30,6 +30,13 @@ class WebCore
     void Close(RemoteWebView* view);
     bool IsAnyInputActive() const;
 
+    void LoadURL(RemoteWebView* view, const std::string& url);
+    void ReloadPage(RemoteWebView* view, bool ignoreCache);
+    void GoBack(RemoteWebView* view);
+    void GoForward(RemoteWebView* view);
+
+    void ExecuteJS(RemoteWebView* view, const std::string& code);
+
     void Update();
 
     bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

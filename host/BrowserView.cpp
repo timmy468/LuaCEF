@@ -3,8 +3,6 @@
 #include <format>
 #include <iostream>
 
-#include "IPCServer.hpp"
-
 BrowserView::BrowserView(uint32_t id, int32_t x, int32_t y, int32_t width, int32_t height)
     : x_(x), y_(y), width_(width), height_(height), webviewId(id)
 {

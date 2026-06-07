@@ -59,6 +59,16 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
         onCreateCallbacks_.push_back(callback);
     }
 
+    void AddOnCloseCallback(ViewCallback callback)
+    {
+        onCloseCallbacks_.push_back(callback);
+    }
+
+    void AddOnLoadingCallback(ViewCallback callback)
+    {
+        onLoadingCallbacks_.push_back(callback);
+    }
+
     void SetRect(int x, int y, int width, int height)
     {
         x_ = x;

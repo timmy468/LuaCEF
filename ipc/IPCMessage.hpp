@@ -11,6 +11,9 @@ enum class CommandType : uint16_t
     CloseWebView,
     SetRect,
     LoadURL,
+    ReloadPage,
+    GoBack,
+    GoForward,
     ExecuteJS,
 
     MouseMove,
@@ -63,6 +66,30 @@ struct LoadURLCmd
     uint32_t id;
 
     char url[512];
+};
+
+struct ReloadPageCmd
+{
+    uint32_t id;
+
+    bool ignoreCache;
+};
+
+struct GoBackCmd
+{
+    uint32_t id;
+};
+
+struct GoForwardCmd
+{
+    uint32_t id;
+};
+
+struct ExecuteJSCmd
+{
+    uint32_t id;
+
+    char code[4096];
 };
 
 struct MouseMoveCmd

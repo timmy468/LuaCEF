@@ -97,12 +97,21 @@ class RemoteWebView
         height_ = height;
     }
 
+    void SetURL(const std::string& url)
+    {
+        url_ = url;
+    }
+
+    const std::string& GetURL() const
+    {
+        return url_;
+    }
+
   private:
     BrowserId browserId_;
 
     IDirect3DTexture9* texture_{};
 
-    std::string pendingUrl_;
     std::string url_;
 
     int x_;
