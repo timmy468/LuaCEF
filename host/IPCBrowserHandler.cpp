@@ -32,37 +32,15 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         std::println(std::cout, "IPC CreateWebView {}", cmd->url);
 
-        auto browser = CefRefPtr<BrowserView>(new BrowserView(cmd->id, cmd->width, cmd->height));
-        // browser->AddOnCreateCallback(
-        //     [pipe, this](BrowserView* view)
-        //     {
-        //         ipc::CreateWebViewResponse response{};
-
-        //         response.id = view->GetWebviewId();
-
-        //         std::cout << "Sending CreateWebViewResponse" << std::endl;
-        //         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::CreateWebViewResponse, response))
-        //         {
-        //             std::cerr << "Failed to send CreateWebViewResponse" << std::endl;
-        //         }
-        //         else
-        //         {
-        //             std::cout << "CreateWebViewResponse sent" << std::endl;
-        //         }
-        //     });
+        auto browser = CefRefPtr<BrowserView>(new BrowserView(cmd->id, cmd->x, cmd->y, cmd->width, cmd->height));
 
         ipc::CreateWebViewResponse response{};
 
         response.id = browser->GetWebviewId();
 
-        std::cout << "Sending CreateWebViewResponse" << std::endl;
         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::CreateWebViewResponse, response))
         {
             std::cerr << "Failed to send CreateWebViewResponse" << std::endl;
-        }
-        else
-        {
-            std::cout << "CreateWebViewResponse sent" << std::endl;
         }
 
         RegisterBrowser(cmd->id, browser);
@@ -120,6 +98,25 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         break;
     }
 
+    case ipc::CommandType::SetRect:
+    {
+        if (payloadSize != sizeof(ipc::SetRectCmd))
+            return;
+
+        auto* cmd = static_cast<const ipc::SetRectCmd*>(payload);
+
+        auto it = browsers_.find(cmd->id);
+
+        if (it != browsers_.end())
+        {
+            CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<BrowserView> browser, int x, int y, int width, int height)
+                                               { browser->SetRect(x, y, width, height); }, it->second, cmd->x, cmd->y,
+                                               cmd->width, cmd->height));
+        }
+
+        break;
+    }
+
     case ipc::CommandType::LoadURL:
     {
         if (payloadSize != sizeof(ipc::LoadURLCmd))
@@ -131,11 +128,9 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         if (it != browsers_.end())
         {
-            auto browser = it->second->GetBrowser();
-
-            if (browser)
+            if (auto browser = it->second->GetBrowser())
             {
-                browser->GetMainFrame()->LoadURL(cmd->url);
+                // browser->GetMainFrame()->LoadURL(cmd->url);
             }
         }
 
@@ -189,21 +184,24 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         auto it = browsers_.find(cmd->id);
         if (it != browsers_.end())
         {
-            CefPostTask(TID_UI, base::BindOnce(
-                                    [](CefRefPtr<CefBrowser> browser, int x, int y)
-                                    {
-                                        if (auto host = browser->GetHost())
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI, base::BindOnce(
+                                        [](CefRefPtr<CefBrowser> browser, int x, int y)
                                         {
-                                            CefMouseEvent mouseEvent;
+                                            if (auto host = browser->GetHost())
+                                            {
+                                                CefMouseEvent mouseEvent;
 
-                                            mouseEvent.x = x;
-                                            mouseEvent.y = y;
-                                            mouseEvent.modifiers = 0;
+                                                mouseEvent.x = x;
+                                                mouseEvent.y = y;
+                                                mouseEvent.modifiers = 0;
 
-                                            host->SendMouseMoveEvent(mouseEvent, false);
-                                        }
-                                    },
-                                    it->second->GetBrowser(), cmd->x, cmd->y));
+                                                host->SendMouseMoveEvent(mouseEvent, false);
+                                            }
+                                        },
+                                        browser, cmd->x, cmd->y));
+            }
         }
 
         break;
@@ -235,7 +233,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                                                 host->SendMouseClickEvent(mouseEvent, button, mouseUp, 1);
                                             }
                                         },
-                                        it->second->GetBrowser(), cmd->x, cmd->y,
+                                        browser, cmd->x, cmd->y,
                                         static_cast<CefBrowserHost::MouseButtonType>(cmd->button), cmd->mouseUp));
             }
         }

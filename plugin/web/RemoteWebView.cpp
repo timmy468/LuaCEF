@@ -7,10 +7,12 @@
 
 #include "utils/samp_utils.hpp"
 
-RemoteWebView::RemoteWebView(BrowserId id, IDirect3DDevice9* device, int x, int y, int width, int height,
-                             FrameCallback onCreate)
-    : browserId_(id), device_(device), width_(width), height_(height), x_(x), y_(y), onCreate_(onCreate)
+RemoteWebView::RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x,
+                             int y, int width, int height, FrameCallback onCreate)
+    : ipcClient_(ipcClient), browserId_(id), device_(device), width_(width), height_(height), x_(x), y_(y),
+      onCreate_(onCreate)
 {
+
     CreateTexture(width, height);
 }
 
@@ -34,6 +36,9 @@ void RemoteWebView::AttachBrowser()
 
 void RemoteWebView::Close()
 {
+    SetInputEnabled(false);
+    SetOffscreenRenderingEnabled(false);
+    SetRenderEnabled(false);
 }
 
 void RemoteWebView::OnDeviceLost()
@@ -96,9 +101,7 @@ bool RemoteWebView::InputEnabled() const
 void RemoteWebView::SetInputEnabled(bool enabled)
 {
     inputEnabled_ = enabled;
-    if (inputEnabled_)
-        samp_utils::ToggleCursor(true);
-    else
+    if (!inputEnabled_)
         samp_utils::ToggleCursor(false);
 }
 

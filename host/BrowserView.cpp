@@ -5,7 +5,8 @@
 
 #include "IPCServer.hpp"
 
-BrowserView::BrowserView(uint32_t id, int32_t width, int32_t height) : width_(width), height_(height), webviewId(id)
+BrowserView::BrowserView(uint32_t id, int32_t x, int32_t y, int32_t width, int32_t height)
+    : x_(x), y_(y), width_(width), height_(height), webviewId(id)
 {
     sharedMemory_.Create(std::format("LuaCEF_SharedMemory_{}", id));
     memset(sharedMemory_.GetBuffer(), 0, sharedMemory_.GetSize());
@@ -44,10 +45,16 @@ void BrowserView::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 
     for (auto& callback : onCreateCallbacks_)
         callback(this);
-
-    // browser_->GetHost()->WasResized();
 }
 
 void BrowserView::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 {
+    for (auto& callback : onCloseCallbacks_)
+        callback(this);
+}
+
+void BrowserView::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
+{
+    for (auto& callback : onLoadingCallbacks_)
+        callback(this);
 }

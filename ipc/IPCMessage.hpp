@@ -9,6 +9,7 @@ enum class CommandType : uint16_t
     CreateWebView = 1,
     CreateWebViewResponse,
     CloseWebView,
+    SetRect,
     LoadURL,
     ExecuteJS,
 
@@ -44,6 +45,17 @@ struct CreateWebViewResponse
 struct CloseWebViewCmd
 {
     uint32_t id;
+};
+
+struct SetRectCmd
+{
+    uint32_t id;
+
+    int32_t x;
+    int32_t y;
+
+    int32_t width;
+    int32_t height;
 };
 
 struct LoadURLCmd

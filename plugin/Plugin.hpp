@@ -21,6 +21,11 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
     RemoteWebView* CreateFullscreen(const char* url, RemoteWebView::FrameCallback onCreate);
     void Close(RemoteWebView* view);
 
+    std::shared_ptr<WebCore> GetWebCore() const
+    {
+        return webCore_;
+    }
+
   private:
     void InstallGameHooks();
 

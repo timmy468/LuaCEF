@@ -11,10 +11,7 @@ bool Host::Initialize()
 {
     InitCef();
 
-    // Создать обработчик IPC команд
     ipcHandler_ = std::make_shared<IPCBrowserHandler>();
-
-    // Запустить IPC сервер
     ipcServer_ = std::make_shared<ipc::IPCServer>(ipcHandler_);
 
     // Запустить сервер в отдельном потоке

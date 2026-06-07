@@ -7,13 +7,13 @@
 #include "SharedFrame.hpp"
 #include "SharedMemory.hpp"
 
-class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpanHandler
+class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpanHandler, public CefLoadHandler
 {
   public:
     using ViewCallback = std::function<void(BrowserView*)>;
 
   public:
-    BrowserView(uint32_t id, int32_t width, int32_t height);
+    BrowserView(uint32_t id, int x, int y, int width, int height);
 
     // CefClient
     CefRefPtr<CefRenderHandler> GetRenderHandler() override
@@ -26,6 +26,11 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
         return this;
     }
 
+    CefRefPtr<CefLoadHandler> GetLoadHandler() override
+    {
+        return this;
+    }
+
     // CefRenderHandler
     void OnPaint(CefRefPtr<CefBrowser>, PaintElementType type, const RectList& dirtyRects, const void* buffer,
                  int width, int height) override;
@@ -34,6 +39,9 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
     // CefLifeSpanHandler
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
     void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
+
+    // CefLoadHandler
+    void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
 
     // Export
     CefRefPtr<CefBrowser> GetBrowser() const
@@ -51,11 +59,21 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
         onCreateCallbacks_.push_back(callback);
     }
 
+    void SetRect(int x, int y, int width, int height)
+    {
+        x_ = x;
+        y_ = y;
+        width_ = width;
+        height_ = height;
+    }
+
   private:
     CefRefPtr<CefBrowser> browser_;
 
     uint32_t webviewId;
 
+    int x_;
+    int y_;
     int width_;
     int height_;
 
@@ -63,6 +81,8 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
     ipc::SharedMemory sharedMemory_;
 
     std::vector<ViewCallback> onCreateCallbacks_;
+    std::vector<ViewCallback> onCloseCallbacks_;
+    std::vector<ViewCallback> onLoadingCallbacks_;
 
     IMPLEMENT_REFCOUNTING(BrowserView);
 };

@@ -6,6 +6,8 @@
 
 #include <CSprite2d.h>
 
+#include "utils/samp_utils.hpp"
+
 void WebCore::Initialize(IDirect3DDevice9* device)
 {
     device_ = device;
@@ -24,7 +26,7 @@ void WebCore::Initialize(IDirect3DDevice9* device)
         Sleep(100);
 
         // Создать IPC клиент и подключиться к subprocess
-        ipcClient_ = std::make_unique<ipc::IPCClient>();
+        ipcClient_ = std::make_shared<ipc::IPCClient>();
         if (ipcClient_->Connect())
         {
             std::cout << "WebCore initialized, connected to subprocess" << std::endl;
@@ -53,21 +55,7 @@ void WebCore::Shutdown()
         processManager_->Stop();
         processManager_ = nullptr;
     }
-
-    // for (auto& view : webViews_)
-    //     Close(view);
 }
-
-// bool WebCore::IsAnyInputActive() const
-// {
-//     for (auto* view : webViews_)
-//     {
-//         if (view->InputEnabled())
-//             return true;
-//     }
-
-//     return false;
-// }
 
 RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int h,
                                RemoteWebView::FrameCallback onCreate)
@@ -83,7 +71,7 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
 
     strcpy_s(cmd.url, sizeof(cmd.url), url.c_str());
 
-    auto* webView = new RemoteWebView(cmd.id, device_, x, y, w, h, onCreate);
+    auto* webView = new RemoteWebView(ipcClient_, cmd.id, device_, x, y, w, h, onCreate);
     webViews_.push_back(webView);
 
     webviewIdMap_[cmd.id] = webView;
@@ -111,17 +99,47 @@ void WebCore::Close(RemoteWebView* view)
     auto it = std::find(webViews_.begin(), webViews_.end(), view);
     if (it != webViews_.end())
     {
-        (*it)->Close();
-        delete *it;
-        webViews_.erase(it);
+        view->Close();
+
+        ipc::CloseWebViewCmd cmd{};
+        cmd.id = view->GetBrowserId();
+
+        AddTaskToMessageThread(
+            [this, cmd]()
+            {
+                std::println(std::cout, "Sending CloseWebView command");
+                if (!ipcClient_->Send(ipc::CommandType::CloseWebView, cmd))
+                {
+                    std::cerr << "Failed to send CloseWebView command" << std::endl;
+                }
+                std::println(std::cout, "CloseWebView command sent");
+            });
+
+        // todo: handle this
+        // delete *it;
+        // webViews_.erase(it);
     }
+}
+
+bool WebCore::IsAnyInputActive() const
+{
+    for (auto* view : webViews_)
+    {
+        if (view->InputEnabled())
+            return true;
+    }
+
+    return false;
 }
 
 void WebCore::Update()
 {
     ProcessGameThreadTasks();
+
+    ProcessInput();
+
     UpdateTextures();
-    // Render();
+    Render();
 }
 
 void WebCore::Render()
@@ -129,7 +147,7 @@ void WebCore::Render()
     // TODO: fix SF & white screen
     for (auto& view : webViews_)
     {
-        if (view->OffscreenRenderingEnabled())
+        if (view->OffscreenRenderingEnabled() || !view->RenderEnabled())
             continue;
 
         // if (!view->IsLoaded())
@@ -140,7 +158,20 @@ void WebCore::Render()
             std::println(std::cout, "Rendering texture {} {} {} {}", view->GetX(), view->GetY(), view->GetWidth(),
                          view->GetHeight());
 
-            device_->SetTexture(0, texture);
+            static RwRaster* raster{};
+            if (!raster)
+            {
+                raster = RwRasterCreate(view->GetWidth(), view->GetHeight(), 0, rwRASTERTYPETEXTURE);
+            }
+
+            // RasterExtOffset
+            {
+                auto offset = *reinterpret_cast<IDirect3DTexture9***>(0xB4E9E0);
+                auto& rasterTexture = *reinterpret_cast<IDirect3DTexture9**>((uintptr_t)raster + (uintptr_t)offset);
+                rasterTexture = texture;
+            }
+
+            RwRenderStateSet(rwRENDERSTATETEXTURERASTER, raster);
 
             CRect rect;
             rect.left = view->GetX();
@@ -177,14 +208,17 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             ipc::MouseMoveCmd cmd{};
             cmd.id = id;
-            cmd.x = point.x;
-            cmd.y = point.y;
+            cmd.x = point.x - webView->GetX();
+            cmd.y = point.y - webView->GetY();
 
-            if (!ipcClient_->Send(ipc::CommandType::MouseMove, cmd))
-            {
-                std::cerr << "Failed to send MouseMove command" << std::endl;
-                return false;
-            }
+            AddTaskToMessageThread(
+                [this, cmd]()
+                {
+                    if (!ipcClient_->Send(ipc::CommandType::MouseMove, cmd))
+                    {
+                        std::cerr << "Failed to send MouseMove command" << std::endl;
+                    }
+                });
 
             return true;
         }
@@ -195,8 +229,8 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             ipc::MouseClickCmd cmd{};
             cmd.id = id;
-            cmd.x = point.x;
-            cmd.y = point.y;
+            cmd.x = point.x - webView->GetX();
+            cmd.y = point.y - webView->GetY();
 
             switch (msg)
             {
@@ -228,11 +262,14 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 return false;
             }
 
-            if (!ipcClient_->Send(ipc::CommandType::MouseClick, cmd))
-            {
-                std::cerr << "Failed to send MouseClick command" << std::endl;
-                return false;
-            }
+            AddTaskToMessageThread(
+                [this, cmd]()
+                {
+                    if (!ipcClient_->Send(ipc::CommandType::MouseClick, cmd))
+                    {
+                        std::cerr << "Failed to send MouseClick command" << std::endl;
+                    }
+                });
             return true;
         }
         else if (msg == WM_MOUSEWHEEL)
@@ -242,15 +279,18 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             ipc::MouseWheelCmd cmd{};
             cmd.id = id;
-            cmd.x = point.x;
-            cmd.y = point.y;
+            cmd.x = point.x - webView->GetX();
+            cmd.y = point.y - webView->GetY();
             cmd.delta = GET_WHEEL_DELTA_WPARAM(wParam);
 
-            if (!ipcClient_->Send(ipc::CommandType::MouseWheel, cmd))
-            {
-                std::cerr << "Failed to send MouseWheel command" << std::endl;
-                return false;
-            }
+            AddTaskToMessageThread(
+                [this, cmd]()
+                {
+                    if (!ipcClient_->Send(ipc::CommandType::MouseWheel, cmd))
+                    {
+                        std::cerr << "Failed to send MouseWheel command" << std::endl;
+                    }
+                });
             return true;
         }
 
@@ -285,11 +325,14 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 cmd.type = 3;
             }
 
-            if (!ipcClient_->Send(ipc::CommandType::Key, cmd))
-            {
-                std::cerr << "Failed to send Key command" << std::endl;
-                return false;
-            }
+            AddTaskToMessageThread(
+                [this, cmd]()
+                {
+                    if (!ipcClient_->Send(ipc::CommandType::Key, cmd))
+                    {
+                        std::cerr << "Failed to send Key command" << std::endl;
+                    }
+                });
 
             return true;
         }
@@ -418,4 +461,12 @@ void WebCore::AddTaskToMessageThread(std::function<void()> task)
     std::lock_guard lock(messageThreadTasks_.mutex);
 
     messageThreadTasks_.tasks.push_back(task);
+}
+
+void WebCore::ProcessInput()
+{
+    if (!IsAnyInputActive())
+        return;
+
+    samp_utils::ToggleCursor(true);
 }

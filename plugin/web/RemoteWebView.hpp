@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <mutex>
 #include <vector>
 
@@ -23,18 +24,18 @@ class RemoteWebView
     using JsonCallback = void(__stdcall*)(RemoteWebView*, const char*, const char**, int);
 
   public:
-    RemoteWebView(BrowserId id, IDirect3DDevice9* device, int x, int y, int width, int height,
-                  FrameCallback onCreate = nullptr);
+    RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x, int y,
+                  int width, int height, FrameCallback onCreate = nullptr);
     ~RemoteWebView();
 
     // Export
-    void AttachBrowser();
     void Close();
+    void AttachBrowser();
+
     void OnDeviceLost();
     void OnDeviceReset();
 
     void Update();
-    void UploadTexture();
 
     bool InputEnabled() const;
     void SetInputEnabled(bool enabled);
@@ -47,6 +48,16 @@ class RemoteWebView
     void SetOffscreenRenderingEnabled(bool enabled)
     {
         offscreenRenderingEnabled_ = enabled;
+    }
+
+    bool RenderEnabled() const
+    {
+        return renderEnabled_;
+    }
+
+    void SetRenderEnabled(bool enabled)
+    {
+        renderEnabled_ = enabled;
     }
 
     IDirect3DTexture9* GetTexture() const
@@ -67,14 +78,23 @@ class RemoteWebView
     {
         return width_;
     }
+
     int GetHeight() const
     {
         return height_;
     }
 
-    bool IsLoaded() const
+    BrowserId GetBrowserId() const
     {
-        return loaded_;
+        return browserId_;
+    }
+
+    void SetRect(int x, int y, int width, int height)
+    {
+        x_ = x;
+        y_ = y;
+        width_ = width;
+        height_ = height;
     }
 
   private:
@@ -91,8 +111,9 @@ class RemoteWebView
     int height_;
 
     bool inputEnabled_{false};
+
     bool offscreenRenderingEnabled_{false};
-    std::atomic<bool> loaded_{false};
+    bool renderEnabled_{true};
 
     IDirect3DDevice9* device_{};
 
@@ -104,7 +125,10 @@ class RemoteWebView
     SharedFrame* frame_{};
     uint32_t lastSequence_{};
 
+    std::shared_ptr<ipc::IPCClient> ipcClient_;
+
   private:
     void CreateTexture(uint32_t width, uint32_t height);
     void DeleteTexture();
+    void UploadTexture();
 };
