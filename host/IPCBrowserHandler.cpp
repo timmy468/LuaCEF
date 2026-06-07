@@ -180,6 +180,137 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         //     break;
         // }
 
+    case ipc::CommandType::MouseMove:
+    {
+        auto* cmd = static_cast<const ipc::MouseMoveCmd*>(payload);
+
+        std::println(std::cout, "MouseMove command received with id {}, x: {}, y: {}", cmd->id, cmd->x, cmd->y);
+
+        auto it = browsers_.find(cmd->id);
+        if (it != browsers_.end())
+        {
+            CefPostTask(TID_UI, base::BindOnce(
+                                    [](CefRefPtr<CefBrowser> browser, int x, int y)
+                                    {
+                                        if (auto host = browser->GetHost())
+                                        {
+                                            CefMouseEvent mouseEvent;
+
+                                            mouseEvent.x = x;
+                                            mouseEvent.y = y;
+                                            mouseEvent.modifiers = 0;
+
+                                            host->SendMouseMoveEvent(mouseEvent, false);
+                                        }
+                                    },
+                                    it->second->GetBrowser(), cmd->x, cmd->y));
+        }
+
+        break;
+    }
+    case ipc::CommandType::MouseClick:
+    {
+        auto* cmd = static_cast<const ipc::MouseClickCmd*>(payload);
+
+        std::println(std::cout, "MouseClick command received with id {}, x: {}, y: {}, button: {}, down: {}", cmd->id,
+                     cmd->x, cmd->y, cmd->button, cmd->mouseUp);
+
+        auto it = browsers_.find(cmd->id);
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI, base::BindOnce(
+                                        [](CefRefPtr<CefBrowser> browser, int x, int y,
+                                           CefBrowserHost::MouseButtonType button, bool mouseUp)
+                                        {
+                                            if (auto host = browser->GetHost())
+                                            {
+                                                CefMouseEvent mouseEvent;
+
+                                                mouseEvent.x = x;
+                                                mouseEvent.y = y;
+                                                mouseEvent.modifiers = 0;
+
+                                                host->SendMouseClickEvent(mouseEvent, button, mouseUp, 1);
+                                            }
+                                        },
+                                        it->second->GetBrowser(), cmd->x, cmd->y,
+                                        static_cast<CefBrowserHost::MouseButtonType>(cmd->button), cmd->mouseUp));
+            }
+        }
+
+        break;
+    }
+
+    case ipc::CommandType::MouseWheel:
+    {
+        auto* cmd = static_cast<const ipc::MouseWheelCmd*>(payload);
+
+        std::println(std::cout, "MouseWheel command received with id {}, x: {}, y: {}, delta: {}", cmd->id, cmd->x,
+                     cmd->y, cmd->delta);
+
+        auto it = browsers_.find(cmd->id);
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI, base::BindOnce(
+                                        [](CefRefPtr<CefBrowser> browser, int x, int y, int delta)
+                                        {
+                                            if (auto host = browser->GetHost())
+                                            {
+                                                CefMouseEvent mouseEvent;
+
+                                                mouseEvent.x = x;
+                                                mouseEvent.y = y;
+                                                mouseEvent.modifiers = 0;
+
+                                                host->SendMouseWheelEvent(mouseEvent, 0, delta);
+                                            }
+                                        },
+                                        it->second->GetBrowser(), cmd->x, cmd->y, cmd->delta));
+            }
+        }
+
+        break;
+    }
+    case ipc::CommandType::Key:
+    {
+        auto* cmd = static_cast<const ipc::KeyCmd*>(payload);
+        std::println(std::cout,
+                     "Key command received with id {}, keycode: {}, nativeKeycode: {}, modifiers: {}, type: {}",
+                     cmd->id, cmd->keycode, cmd->nativeKeycode, cmd->modifiers, cmd->type);
+
+        auto it = browsers_.find(cmd->id);
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI,
+                            base::BindOnce(
+                                [](CefRefPtr<CefBrowser> browser, int32_t keycode, int32_t nativeKeycode,
+                                   int32_t modifiers, int32_t type)
+                                {
+                                    if (auto host = browser->GetHost())
+                                    {
+                                        CefKeyEvent event;
+
+                                        event.windows_key_code = keycode;
+                                        event.native_key_code = nativeKeycode;
+                                        event.modifiers = modifiers;
+                                        event.type = static_cast<cef_key_event_type_t>(type);
+
+                                        host->SendKeyEvent(event);
+                                    }
+                                },
+                                it->second->GetBrowser(), cmd->keycode, cmd->nativeKeycode, cmd->modifiers, cmd->type));
+            }
+        }
+
+        break;
+    }
+
     default:
     {
         std::println(std::cerr, "Unknown IPC command {}", static_cast<int>(type));

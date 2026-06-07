@@ -159,111 +159,143 @@ void WebCore::UpdateTextures()
         view->Update();
 }
 
-// bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-// {
-//     if (msg == WM_CHAR)
-//     {
-//         wchar_t wch;
-//         MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, reinterpret_cast<char*>(&wParam), 1, &wch, 1);
-//         wParam = wch;
-//     }
+bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    if (msg == WM_CHAR)
+    {
+        wchar_t wch;
+        MultiByteToWideChar(CP_ACP, MB_PRECOMPOSED, reinterpret_cast<char*>(&wParam), 1, &wch, 1);
+        wParam = wch;
+    }
 
-//     for (auto& webView : webViews_)
-//     {
-//         auto browser = webView->GetBrowser();
+    for (auto& [id, webView] : webviewIdMap_)
+    {
+        if (msg == WM_MOUSEMOVE)
+        {
+            POINT point = {LOWORD(lParam), HIWORD(lParam)};
+            ScreenToClient(hwnd, &point);
 
-//         if (!browser)
-//             continue;
+            ipc::MouseMoveCmd cmd{};
+            cmd.id = id;
+            cmd.x = point.x;
+            cmd.y = point.y;
 
-//         auto host = browser->GetHost();
+            if (!ipcClient_->Send(ipc::CommandType::MouseMove, cmd))
+            {
+                std::cerr << "Failed to send MouseMove command" << std::endl;
+                return false;
+            }
 
-//         if (!host)
-//             continue;
+            return true;
+        }
+        else if (msg >= WM_LBUTTONDOWN && msg <= WM_MBUTTONUP)
+        {
+            POINT point = {LOWORD(lParam), HIWORD(lParam)};
+            ScreenToClient(hwnd, &point);
 
-//         if (msg >= WM_MOUSEMOVE && msg <= WM_MBUTTONUP || msg == WM_MOUSEWHEEL)
-//         {
-//             POINT point = {LOWORD(lParam), HIWORD(lParam)};
-//             ScreenToClient(hwnd, &point);
+            ipc::MouseClickCmd cmd{};
+            cmd.id = id;
+            cmd.x = point.x;
+            cmd.y = point.y;
 
-//             CefMouseEvent mouse_event;
+            switch (msg)
+            {
+            case WM_LBUTTONDOWN:
+                cmd.mouseUp = false;
+                cmd.button = 0;
+                break;
+            case WM_LBUTTONUP:
+                cmd.mouseUp = true;
+                cmd.button = 0;
+                break;
+            case WM_MBUTTONDOWN:
+                cmd.mouseUp = false;
+                cmd.button = 1;
+                break;
+            case WM_MBUTTONUP:
+                cmd.mouseUp = true;
+                cmd.button = 1;
+                break;
+            case WM_RBUTTONDOWN:
+                cmd.mouseUp = false;
+                cmd.button = 2;
+                break;
+            case WM_RBUTTONUP:
+                cmd.mouseUp = true;
+                cmd.button = 2;
+                break;
+            default:
+                return false;
+            }
 
-//             mouse_event.x = point.x;
-//             mouse_event.y = point.y;
-//             mouse_event.modifiers = 0;
+            if (!ipcClient_->Send(ipc::CommandType::MouseClick, cmd))
+            {
+                std::cerr << "Failed to send MouseClick command" << std::endl;
+                return false;
+            }
+            return true;
+        }
+        else if (msg == WM_MOUSEWHEEL)
+        {
+            POINT point = {LOWORD(lParam), HIWORD(lParam)};
+            ScreenToClient(hwnd, &point);
 
-//             switch (msg)
-//             {
-//             case WM_LBUTTONDOWN:
-//                 host->SendMouseClickEvent(mouse_event, MBT_LEFT, false, 1);
-//                 break;
-//             case WM_LBUTTONUP:
-//                 host->SendMouseClickEvent(mouse_event, MBT_LEFT, true, 1);
-//                 break;
-//             case WM_RBUTTONDOWN:
-//                 host->SendMouseClickEvent(mouse_event, MBT_RIGHT, false, 1);
-//                 break;
-//             case WM_RBUTTONUP:
-//                 host->SendMouseClickEvent(mouse_event, MBT_RIGHT, true, 1);
-//                 break;
-//             case WM_MBUTTONDOWN:
-//                 host->SendMouseClickEvent(mouse_event, MBT_MIDDLE, false, 1);
-//                 break;
-//             case WM_MBUTTONUP:
-//                 host->SendMouseClickEvent(mouse_event, MBT_MIDDLE, true, 1);
-//                 break;
-//             case WM_MOUSEWHEEL:
-//             {
-//                 int delta = GET_WHEEL_DELTA_WPARAM(wParam);
-//                 host->SendMouseWheelEvent(mouse_event, 0, delta);
-//                 break;
-//             }
-//             default:
-//             {
-//                 host->SendMouseMoveEvent(mouse_event, false);
-//                 break;
-//             }
-//             }
-//             return true;
-//         }
+            ipc::MouseWheelCmd cmd{};
+            cmd.id = id;
+            cmd.x = point.x;
+            cmd.y = point.y;
+            cmd.delta = GET_WHEEL_DELTA_WPARAM(wParam);
 
-//         if (msg >= WM_KEYDOWN && msg <= WM_CHAR)
-//         {
-//             int keycode = static_cast<int>(wParam);
-//             int modifiers = 0;
+            if (!ipcClient_->Send(ipc::CommandType::MouseWheel, cmd))
+            {
+                std::cerr << "Failed to send MouseWheel command" << std::endl;
+                return false;
+            }
+            return true;
+        }
 
-//             if (GetKeyState(VK_SHIFT) & 0x8000)
-//                 modifiers |= EVENTFLAG_SHIFT_DOWN;
-//             if (GetKeyState(VK_CONTROL) & 0x8000)
-//                 modifiers |= EVENTFLAG_CONTROL_DOWN;
-//             if (GetKeyState(VK_MENU) & 0x8000)
-//                 modifiers |= EVENTFLAG_ALT_DOWN;
+        if (msg >= WM_KEYDOWN && msg <= WM_CHAR)
+        {
+            int keycode = static_cast<int>(wParam);
+            int modifiers = 0;
 
-//             CefKeyEvent event;
+            if (GetKeyState(VK_SHIFT) & 0x8000)
+                modifiers |= 1 << 1;
+            if (GetKeyState(VK_CONTROL) & 0x8000)
+                modifiers |= 1 << 2;
+            if (GetKeyState(VK_MENU) & 0x8000)
+                modifiers |= 1 << 3;
 
-//             event.windows_key_code = keycode;
-//             event.native_key_code = static_cast<int>(lParam);
-//             event.modifiers = modifiers;
+            ipc::KeyCmd cmd{};
+            cmd.id = id;
+            cmd.keycode = keycode;
+            cmd.nativeKeycode = static_cast<int>(lParam);
+            cmd.modifiers = modifiers;
 
-//             if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
-//             {
-//                 event.type = KEYEVENT_RAWKEYDOWN;
-//             }
-//             else if (msg == WM_KEYUP || msg == WM_SYSKEYUP)
-//             {
-//                 event.type = KEYEVENT_KEYUP;
-//             }
-//             else if (msg == WM_CHAR)
-//             {
-//                 event.type = KEYEVENT_CHAR;
-//             }
+            if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
+            {
+                cmd.type = 0;
+            }
+            else if (msg == WM_KEYUP || msg == WM_SYSKEYUP)
+            {
+                cmd.type = 2;
+            }
+            else if (msg == WM_CHAR)
+            {
+                cmd.type = 3;
+            }
 
-//             host->SendKeyEvent(event);
+            if (!ipcClient_->Send(ipc::CommandType::Key, cmd))
+            {
+                std::cerr << "Failed to send Key command" << std::endl;
+                return false;
+            }
 
-//             return true;
-//         }
-//     }
-//     return false;
-// }
+            return true;
+        }
+    }
+    return false;
+}
 
 void WebCore::OnDeviceLost()
 {
@@ -333,35 +365,6 @@ void WebCore::MessageReceiveThreadProc()
 
             AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->AttachBrowser(); });
         }
-            // case ipc::CommandType::FrameReady:
-            // {
-            //     if (header.payloadSize != sizeof(ipc::FrameReadyCmd))
-            //     {
-            //         std::cerr << "Invalid FrameReady payload size" << std::endl;
-
-            //         break;
-            //     }
-
-            //     ipc::FrameReadyCmd frameReady{};
-
-            //     if (!ipcClient_->ReceivePayload(frameReady))
-            //     {
-            //         std::cerr << "Failed to receive FrameReady payload" << std::endl;
-
-            //         break;
-            //     }
-
-            //     auto it = webviewIdMap_.find(frameReady.id);
-
-            //     if (it != webviewIdMap_.end())
-            //     {
-            //         it->second->OnRemoteFrameReady(frameReady.width, frameReady.height,
-            //         frameReady.shared_memory_offset,
-            //                                        frameReady.frame_size);
-            //     }
-
-            //     break;
-            // }
 
         default:
         {

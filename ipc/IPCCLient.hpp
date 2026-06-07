@@ -49,7 +49,7 @@ template <typename T> bool IPCClient::Send(CommandType type, const T& payload)
 
     DWORD written{};
 
-    std::println(std::cout, "Sending message of type {} {}", static_cast<int>(type), pipe_handle_);
+    // std::println(std::cout, "Sending message of type {} {}", static_cast<int>(type), pipe_handle_);
 
     if (!WriteFile(pipe_handle_, &header, sizeof(header), &written, nullptr))
     {
@@ -59,19 +59,19 @@ template <typename T> bool IPCClient::Send(CommandType type, const T& payload)
         return false;
     }
 
-    std::println(std::cout, "Sending message of type2 {} {}", static_cast<int>(type), pipe_handle_);
+    // std::println(std::cout, "Sending message of type2 {} {}", static_cast<int>(type), pipe_handle_);
 
     if (written != sizeof(header))
         return false;
 
-    std::println(std::cout, "Sending message of type3 {} {}", static_cast<int>(type), pipe_handle_);
+    // std::println(std::cout, "Sending message of type3 {} {}", static_cast<int>(type), pipe_handle_);
 
     if (!WriteFile(pipe_handle_, &payload, sizeof(T), &written, nullptr))
     {
         return false;
     }
 
-    std::println(std::cout, "Sending message of type4 {} {}", static_cast<int>(type), pipe_handle_);
+    // std::println(std::cout, "Sending message of type4 {} {}", static_cast<int>(type), pipe_handle_);
 
     return written == sizeof(T);
 }

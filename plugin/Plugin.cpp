@@ -120,5 +120,5 @@ void Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     // std::println(std::cout, "WndProc called with hwnd: {}, msg: {}, wParam: {}, lParam: {}", hwnd, msg, wParam,
     // lParam);
 
-    // webCore_->OnWndProc(hwnd, msg, wParam, lParam);
+    webCore_->OnWndProc(hwnd, msg, wParam, lParam);
 }

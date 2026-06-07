@@ -33,6 +33,7 @@ class WebCore
     void UpdateTextures();
     void Render();
 
+    bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     void OnDeviceLost();
     void OnDeviceReset();
 

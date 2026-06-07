@@ -14,9 +14,9 @@ enum class CommandType : uint16_t
 
     MouseMove,
     MouseClick,
+    MouseWheel,
 
-    KeyDown,
-    KeyUp,
+    Key,
 
     Ping,
     Pong,
@@ -59,6 +59,38 @@ struct MouseMoveCmd
 
     int32_t x;
     int32_t y;
+};
+
+struct MouseClickCmd
+{
+    uint32_t id;
+
+    int32_t x;
+    int32_t y;
+
+    uint32_t button;
+    bool mouseUp;
+};
+
+struct MouseWheelCmd
+{
+    uint32_t id;
+
+    int32_t x;
+    int32_t y;
+
+    int32_t delta;
+};
+
+struct KeyCmd
+{
+    uint32_t id;
+
+    uint32_t keycode;
+    uint32_t nativeKeycode;
+
+    int32_t modifiers;
+    int32_t type;
 };
 
 #pragma pack(push, 1)
