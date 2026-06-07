@@ -19,14 +19,16 @@ class IPCBrowserHandler : public ipc::IPCMessageHandler
 
     void HandleMessage(HANDLE pipe, ipc::CommandType type, const void* payload, uint32_t payloadSize) override;
 
+    void SetIPCServer(std::shared_ptr<ipc::IPCServer> ipcServer)
+    {
+        ipcServer_ = ipcServer;
+    }
+
     void RegisterBrowser(uint32_t id, CefRefPtr<BrowserView> handler);
     void UnregisterBrowser(uint32_t id);
-
-    void AddTask(std::function<void()> task);
 
   private:
     std::map<uint32_t, CefRefPtr<BrowserView>> browsers_;
 
-    std::vector<std::function<void()>> tasks_;
-    std::mutex tasks_mutex_;
+    std::shared_ptr<ipc::IPCServer> ipcServer_;
 };

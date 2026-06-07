@@ -87,6 +87,11 @@ void IPCServer::ClientThreadProc(HANDLE pipe_handle)
 
     while (is_running_)
     {
+        ProcessMessageThreadTasks();
+
+        if (!HasData(pipe_handle))
+            continue;
+
         MessageHeader header{};
 
         DWORD bytesRead{};
@@ -136,4 +141,29 @@ void IPCServer::ClientThreadProc(HANDLE pipe_handle)
     std::cout << "Client disconnected" << std::endl;
 }
 
+bool IPCServer::HasData(HANDLE pipe_handle)
+{
+    DWORD bytesAvailable{};
+
+    return PeekNamedPipe(pipe_handle, nullptr, 0, nullptr, &bytesAvailable, nullptr) && bytesAvailable;
+}
+
+void IPCServer::AddTaskToMessageThread(std::function<void()> task)
+{
+    std::lock_guard lock(message_thread_tasks_.mutex);
+
+    message_thread_tasks_.tasks.push_back(task);
+}
+
+void IPCServer::ProcessMessageThreadTasks()
+{
+    std::lock_guard lock(message_thread_tasks_.mutex);
+
+    for (auto& task : message_thread_tasks_.tasks)
+    {
+        task();
+    }
+
+    message_thread_tasks_.tasks.clear();
+}
 } // namespace ipc

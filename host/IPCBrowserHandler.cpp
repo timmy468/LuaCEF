@@ -12,13 +12,6 @@ IPCBrowserHandler::IPCBrowserHandler()
 
 IPCBrowserHandler::~IPCBrowserHandler() = default;
 
-void IPCBrowserHandler::AddTask(std::function<void()> task)
-{
-    std::lock_guard lock(tasks_mutex_);
-
-    tasks_.push_back(task);
-}
-
 void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const void* payload, uint32_t payloadSize)
 {
     switch (type)
@@ -33,6 +26,91 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         std::println(std::cout, "IPC CreateWebView {}", cmd->url);
 
         auto browser = CefRefPtr<BrowserView>(new BrowserView(cmd->id, cmd->x, cmd->y, cmd->width, cmd->height));
+        browser->AddOnCreateCallback(
+            [this, pipe](BrowserView* browser)
+            {
+                if (!ipcServer_)
+                    return;
+
+                ipcServer_->AddTaskToMessageThread(
+                    [this, pipe, browser]()
+                    {
+                        ipc::AfterCreateResponse cmd{};
+                        cmd.id = browser->GetWebviewId();
+
+                        std::println(std::cout, "Sending AfterCreateResponse command");
+                        if (!ipc::IPCServer::Send(pipe, ipc::CommandType::AfterCreateResponse, cmd))
+                        {
+                            std::cerr << "Failed to send AfterCreateResponse" << std::endl;
+                        }
+                        std::println(std::cout, "AfterCreateResponse command sent");
+                    });
+            });
+
+        browser->AddOnCloseCallback(
+            [this, pipe](BrowserView* browser)
+            {
+                if (!ipcServer_)
+                    return;
+
+                ipcServer_->AddTaskToMessageThread(
+                    [this, pipe, browser]()
+                    {
+                        ipc::CloseWebViewResponse cmd{};
+                        cmd.id = browser->GetWebviewId();
+
+                        std::println(std::cout, "Sending CloseWebViewResponse command");
+                        if (!ipc::IPCServer::Send(pipe, ipc::CommandType::CloseWebViewResponse, cmd))
+                        {
+                            std::cerr << "Failed to send CloseWebViewResponse" << std::endl;
+                        }
+                        std::println(std::cout, "CloseWebViewResponse command sent");
+                    });
+            });
+
+        browser->AddOnLoadingCallback(
+            [this, pipe](BrowserView* browser, int httpStatusCode)
+            {
+                if (!ipcServer_)
+                    return;
+
+                ipcServer_->AddTaskToMessageThread(
+                    [this, pipe, browser, httpStatusCode]()
+                    {
+                        ipc::LoadingResponse cmd{};
+                        cmd.id = browser->GetWebviewId();
+                        cmd.httpStatusCode = httpStatusCode;
+
+                        std::println(std::cout, "Sending LoadingResponse command");
+                        if (!ipc::IPCServer::Send(pipe, ipc::CommandType::LoadingResponse, cmd))
+                        {
+                            std::cerr << "Failed to send LoadingResponse" << std::endl;
+                        }
+                        std::println(std::cout, "LoadingResponse command sent");
+                    });
+            });
+
+        browser->AddOnAddressChangeCallback(
+            [this, pipe](BrowserView* browser, const CefString& url)
+            {
+                if (!ipcServer_)
+                    return;
+
+                ipcServer_->AddTaskToMessageThread(
+                    [this, pipe, browser, url]()
+                    {
+                        ipc::URLChangedResponse cmd{};
+                        cmd.id = browser->GetWebviewId();
+                        strcpy_s(cmd.url, sizeof(cmd.url), url.ToString().c_str());
+
+                        std::println(std::cout, "Sending URLChangedResponse command");
+                        if (!ipc::IPCServer::Send(pipe, ipc::CommandType::URLChangedResponse, cmd))
+                        {
+                            std::cerr << "Failed to send URLChangedResponse" << std::endl;
+                        }
+                        std::println(std::cout, "URLChangedResponse command sent");
+                    });
+            });
 
         ipc::CreateWebViewResponse response{};
 

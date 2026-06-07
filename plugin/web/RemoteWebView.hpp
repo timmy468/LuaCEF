@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <vector>
@@ -17,11 +18,9 @@ class RemoteWebView
   public:
     using BrowserId = uint32_t;
 
-    using FrameCallback = void(__stdcall*)(RemoteWebView*);
-
-    using LoadingCallback = void(__stdcall*)(RemoteWebView*, int);
-
-    using JsonCallback = void(__stdcall*)(RemoteWebView*, const char*, const char**, int);
+    using FrameCallback = std::function<void(RemoteWebView*)>;
+    using LoadingCallback = std::function<void(RemoteWebView*, int)>;
+    using JsonCallback = std::function<void(RemoteWebView*, const char*, const char**, int)>;
 
   public:
     RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x, int y,
@@ -29,6 +28,26 @@ class RemoteWebView
     ~RemoteWebView();
 
     // Export
+    void OnAfterCreate();
+    void OnLoading(int httpStatusCode);
+    void OnClose();
+    void OnURLChanged(const std::string& url);
+
+    void AddOnAfterCreateCallback(FrameCallback callback)
+    {
+        onAfterCreateCallbacks_.push_back(callback);
+    }
+
+    void AddOnLoadingCallback(LoadingCallback callback)
+    {
+        onLoadingCallbacks_.push_back(callback);
+    }
+
+    void AddOnCloseCallback(FrameCallback callback)
+    {
+        onCloseCallbacks_.push_back(callback);
+    }
+
     void Close();
     void AttachBrowser();
 
@@ -126,9 +145,9 @@ class RemoteWebView
 
     IDirect3DDevice9* device_{};
 
-    FrameCallback onCreate_{};
-    FrameCallback onClose_{};
-    LoadingCallback onLoading_{};
+    std::vector<FrameCallback> onAfterCreateCallbacks_;
+    std::vector<LoadingCallback> onLoadingCallbacks_;
+    std::vector<FrameCallback> onCloseCallbacks_;
 
     ipc::SharedMemory sharedMemory_;
     SharedFrame* frame_{};

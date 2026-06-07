@@ -54,5 +54,11 @@ void BrowserView::OnBeforeClose(CefRefPtr<CefBrowser> browser)
 void BrowserView::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode)
 {
     for (auto& callback : onLoadingCallbacks_)
-        callback(this);
+        callback(this, httpStatusCode);
+}
+
+void BrowserView::OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& url)
+{
+    for (auto& callback : onAddressChangeCallbacks_)
+        callback(this, url);
 }

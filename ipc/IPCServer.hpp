@@ -2,7 +2,9 @@
 
 #include "IPCMessage.hpp"
 #include <Windows.h>
+#include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -36,6 +38,8 @@ class IPCServer
     // Отправить сообщение клиенту (для ответов из handler'а)
     template <typename T> bool SendToClient(HANDLE client, CommandType type, const T& payload);
 
+    void AddTaskToMessageThread(std::function<void()> task);
+
     // Проверить работает ли сервер
     bool IsRunning() const
     {
@@ -48,8 +52,19 @@ class IPCServer
 
     std::shared_ptr<IPCMessageHandler> handler_;
     std::string pipe_name_;
-    bool is_running_;
+    std::atomic_bool is_running_;
     std::vector<std::thread> client_threads_;
+
+    struct
+    {
+        std::mutex mutex;
+        std::vector<std::function<void()>> tasks;
+    } message_thread_tasks_;
+
+  private:
+    static bool HasData(HANDLE pipe_handle);
+
+    void ProcessMessageThreadTasks();
 };
 
 template <typename T> bool IPCServer::SendToClient(HANDLE client, CommandType type, const T& payload)

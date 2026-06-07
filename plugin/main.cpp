@@ -4,6 +4,12 @@ PLUGIN_ENTRY_POINT(Plugin);
 
 #define API_EXPORT extern "C" __declspec(dllexport)
 
+using frame_callback_t = void(__stdcall*)(RemoteWebView*);
+
+using loading_callback_t = void(__stdcall*)(RemoteWebView*, int);
+
+using json_callback_t = void(__stdcall*)(RemoteWebView*, const char*, const char**, int);
+
 extern "C"
 {
     API_EXPORT const char* CEF_GetVersion()
@@ -22,39 +28,21 @@ extern "C"
     }
 
     API_EXPORT RemoteWebView* LuaCEF_Create(const char* url, int x, int y, int width, int height,
-                                            RemoteWebView::FrameCallback onCreate)
+                                            frame_callback_t onCreate)
     {
         if (!Plugin::GetInstance().IsInitialized())
             return nullptr;
 
-        return Plugin::GetInstance().Create(url, x, y, width, height, onCreate);
+        return Plugin::GetInstance().Create(url, x, y, width, height,
+                                            [onCreate](RemoteWebView* view) { onCreate(view); });
     }
 
-    API_EXPORT RemoteWebView* LuaCEF_CreateFullscreen(const char* url, RemoteWebView::FrameCallback onCreate)
+    API_EXPORT RemoteWebView* LuaCEF_CreateFullscreen(const char* url, frame_callback_t onCreate)
     {
         if (!Plugin::GetInstance().IsInitialized())
             return nullptr;
 
-        return Plugin::GetInstance().CreateFullscreen(url, onCreate);
-    }
-
-    API_EXPORT void LuaCEF_Close(RemoteWebView* view)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return;
-
-        Plugin::GetInstance().Close(view);
-    }
-
-    API_EXPORT IDirect3DTexture9* LuaCEF_GetTexture(RemoteWebView* view)
-    {
-        if (!Plugin::GetInstance().IsInitialized())
-            return nullptr;
-
-        if (!view)
-            return nullptr;
-
-        return view->GetTexture();
+        return Plugin::GetInstance().CreateFullscreen(url, [onCreate](RemoteWebView* view) { onCreate(view); });
     }
 
     API_EXPORT void LuaCEF_Update()
@@ -79,6 +67,59 @@ extern "C"
             return;
 
         Plugin::GetInstance().GetWebCore()->OnDeviceReset();
+    }
+
+    API_EXPORT void LuaCEF_Close(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        Plugin::GetInstance().Close(view);
+    }
+
+    API_EXPORT IDirect3DTexture9* LuaCEF_GetTexture(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return nullptr;
+
+        if (!view)
+            return nullptr;
+
+        return view->GetTexture();
+    }
+
+    API_EXPORT void LuaCEF_AddOnAfterCreateCallback(RemoteWebView* view, frame_callback_t callback)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        view->AddOnAfterCreateCallback([callback](RemoteWebView* view) { callback(view); });
+    }
+
+    API_EXPORT void LuaCEF_AddOnLoadingCallback(RemoteWebView* view, loading_callback_t callback)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        view->AddOnLoadingCallback([callback](RemoteWebView* view, int httpStatusCode)
+                                   { callback(view, httpStatusCode); });
+    }
+
+    API_EXPORT void LuaCEF_AddOnCloseCallback(RemoteWebView* view, frame_callback_t callback)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        view->AddOnCloseCallback([callback](RemoteWebView* view) { callback(view); });
     }
 
     API_EXPORT bool LuaCEF_IsInputActive(RemoteWebView* view)

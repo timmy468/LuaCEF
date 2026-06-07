@@ -517,6 +517,115 @@ void WebCore::MessageReceiveThreadProc()
             std::cout << "Attaching browser with id " << browserId << std::endl;
 
             AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->AttachBrowser(); });
+
+            break;
+        }
+
+        case ipc::CommandType::CloseWebViewResponse:
+        {
+            if (header.payloadSize != sizeof(ipc::CloseWebViewResponse))
+            {
+                std::cerr << "Invalid CloseWebViewResponse payload size" << std::endl;
+                break;
+            }
+
+            ipc::CloseWebViewResponse response{};
+
+            if (!ipcClient_->ReceivePayload(response))
+            {
+                std::cerr << "Failed to receive CloseWebViewResponse payload" << std::endl;
+                break;
+            }
+
+            const uint32_t browserId = response.id;
+
+            std::cout << "Closing browser with id " << browserId << std::endl;
+
+            AddTaskToGameThread(
+                [this, browserId]()
+                {
+                    // todo: handle this
+                    webviewIdMap_[browserId]->OnClose();
+                });
+
+            break;
+        }
+
+        case ipc::CommandType::LoadingResponse:
+        {
+            if (header.payloadSize != sizeof(ipc::LoadingResponse))
+            {
+                std::cerr << "Invalid LoadingResponse payload size" << std::endl;
+                break;
+            }
+
+            ipc::LoadingResponse response{};
+
+            if (!ipcClient_->ReceivePayload(response))
+            {
+                std::cerr << "Failed to receive LoadingResponse payload" << std::endl;
+                break;
+            }
+
+            const uint32_t browserId = response.id;
+
+            std::cout << "Loading browser with id " << browserId << std::endl;
+
+            AddTaskToGameThread([this, browserId, response]()
+                                { webviewIdMap_[browserId]->OnLoading(response.httpStatusCode); });
+
+            break;
+        }
+
+        case ipc::CommandType::AfterCreateResponse:
+        {
+            if (header.payloadSize != sizeof(ipc::AfterCreateResponse))
+            {
+                std::cerr << "Invalid AfterCreateResponse payload size" << std::endl;
+                break;
+            }
+
+            ipc::AfterCreateResponse response{};
+
+            if (!ipcClient_->ReceivePayload(response))
+            {
+                std::cerr << "Failed to receive AfterCreateResponse payload" << std::endl;
+                break;
+            }
+
+            const uint32_t browserId = response.id;
+
+            std::cout << "AfterCreateResponse browser with id " << browserId << std::endl;
+
+            AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->OnAfterCreate(); });
+
+            break;
+        }
+
+        case ipc::CommandType::URLChangedResponse:
+        {
+            if (header.payloadSize != sizeof(ipc::URLChangedResponse))
+            {
+                std::cerr << "Invalid URLChangedResponse payload size" << std::endl;
+                break;
+            }
+
+            ipc::URLChangedResponse response{};
+
+            if (!ipcClient_->ReceivePayload(response))
+            {
+                std::cerr << "Failed to receive URLChangedResponse payload" << std::endl;
+                break;
+            }
+
+            const uint32_t browserId = response.id;
+            const std::string url = response.url;
+
+            std::cout << "URLChangedResponse browser with id " << browserId << std::endl;
+
+            AddTaskToGameThread([this, browserId, url]() { webviewIdMap_[browserId]->OnURLChanged(url); });
+
+            break;
         }
 
         default:

@@ -7,10 +7,16 @@
 #include "SharedFrame.hpp"
 #include "SharedMemory.hpp"
 
-class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpanHandler, public CefLoadHandler
+class BrowserView : public CefClient,
+                    public CefRenderHandler,
+                    public CefLifeSpanHandler,
+                    public CefLoadHandler,
+                    public CefDisplayHandler
 {
   public:
     using ViewCallback = std::function<void(BrowserView*)>;
+    using LoadingCallback = std::function<void(BrowserView*, int)>;
+    using AddressChangeCallback = std::function<void(BrowserView*, const CefString&)>;
 
   public:
     BrowserView(uint32_t id, int x, int y, int width, int height);
@@ -31,6 +37,11 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
         return this;
     }
 
+    CefRefPtr<CefDisplayHandler> GetDisplayHandler() override
+    {
+        return this;
+    }
+
     // CefRenderHandler
     void OnPaint(CefRefPtr<CefBrowser>, PaintElementType type, const RectList& dirtyRects, const void* buffer,
                  int width, int height) override;
@@ -42,6 +53,9 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
 
     // CefLoadHandler
     void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
+
+    // CefDisplayHandler
+    void OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& url) override;
 
     // Export
     CefRefPtr<CefBrowser> GetBrowser() const
@@ -64,9 +78,14 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
         onCloseCallbacks_.push_back(callback);
     }
 
-    void AddOnLoadingCallback(ViewCallback callback)
+    void AddOnLoadingCallback(LoadingCallback callback)
     {
         onLoadingCallbacks_.push_back(callback);
+    }
+
+    void AddOnAddressChangeCallback(AddressChangeCallback callback)
+    {
+        onAddressChangeCallbacks_.push_back(callback);
     }
 
     void SetRect(int x, int y, int width, int height)
@@ -92,7 +111,8 @@ class BrowserView : public CefClient, public CefRenderHandler, public CefLifeSpa
 
     std::vector<ViewCallback> onCreateCallbacks_;
     std::vector<ViewCallback> onCloseCallbacks_;
-    std::vector<ViewCallback> onLoadingCallbacks_;
+    std::vector<LoadingCallback> onLoadingCallbacks_;
+    std::vector<AddressChangeCallback> onAddressChangeCallbacks_;
 
     IMPLEMENT_REFCOUNTING(BrowserView);
 };

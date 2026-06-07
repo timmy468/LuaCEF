@@ -13,6 +13,7 @@ bool Host::Initialize()
 
     ipcHandler_ = std::make_shared<IPCBrowserHandler>();
     ipcServer_ = std::make_shared<ipc::IPCServer>(ipcHandler_);
+    ipcHandler_->SetIPCServer(ipcServer_);
 
     // Запустить сервер в отдельном потоке
     std::thread server_thread([this]() { ipcServer_->Start(R"(\\.\pipe\LuaCEF_IPC)", 8); });

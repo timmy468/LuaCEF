@@ -9,9 +9,9 @@
 
 RemoteWebView::RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x,
                              int y, int width, int height, FrameCallback onCreate)
-    : ipcClient_(ipcClient), browserId_(id), device_(device), width_(width), height_(height), x_(x), y_(y),
-      onCreate_(onCreate)
+    : ipcClient_(ipcClient), browserId_(id), device_(device), width_(width), height_(height), x_(x), y_(y)
 {
+    onAfterCreateCallbacks_.push_back(onCreate);
 
     CreateTexture(width, height);
 }
@@ -32,6 +32,29 @@ void RemoteWebView::AttachBrowser()
     {
         std::println(std::cout, "Failed to open shared memory: {}", (void*)sharedMemory_.GetBuffer());
     }
+}
+
+void RemoteWebView::OnAfterCreate()
+{
+    for (auto& callback : onAfterCreateCallbacks_)
+        callback(this);
+}
+
+void RemoteWebView::OnLoading(int httpStatusCode)
+{
+    for (auto& callback : onLoadingCallbacks_)
+        callback(this, httpStatusCode);
+}
+
+void RemoteWebView::OnClose()
+{
+    for (auto& callback : onCloseCallbacks_)
+        callback(this);
+}
+
+void RemoteWebView::OnURLChanged(const std::string& url)
+{
+    url_ = url;
 }
 
 void RemoteWebView::Close()
