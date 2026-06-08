@@ -1,4 +1,7 @@
 local ffi = require("ffi")
+local encoding = require("encoding")
+
+encoding.default = "CP1251"
 
 ffi.cdef [[
     typedef void* RemoteWebView;
@@ -6,6 +9,7 @@ ffi.cdef [[
 
     typedef void(__stdcall* frame_callback_t)(RemoteWebView view);
     typedef void(__stdcall* loading_callback_t)(RemoteWebView view, int httpStatusCode);
+    typedef void(__stdcall* bind_function_callback_t)(RemoteWebView view, const char* args);
 
     // Plugin
     bool LuaCEF_IsInitialized();
@@ -26,6 +30,7 @@ ffi.cdef [[
     void LuaCEF_AddOnAfterCreateCallback(RemoteWebView view, frame_callback_t callback);
     void LuaCEF_AddOnLoadingCallback(RemoteWebView view, loading_callback_t callback);
     void LuaCEF_AddOnCloseCallback(RemoteWebView view, frame_callback_t callback);
+    void LuaCEF_AddBindFunction(RemoteWebView view, const char* name, bind_function_callback_t callback);
 
     bool LuaCEF_IsInputActive(RemoteWebView view);
     void LuaCEF_SetInputActive(RemoteWebView view, bool enable);
@@ -64,15 +69,30 @@ function RemoteWebView:close()
 end
 
 function RemoteWebView:addOnAfterCreateCallback(cb)
-    CEF_LIB.LuaCEF_AddOnAfterCreateCallback(self.frame, ffi.cast("frame_callback_t", cb))
+    CEF_LIB.LuaCEF_AddOnAfterCreateCallback(self.frame, ffi.cast("frame_callback_t", function(...)
+        local success, err = pcall(cb, ...)
+        if not success then
+            print(err)
+        end
+    end))
 end
 
 function RemoteWebView:addOnLoadingCallback(cb)
-    CEF_LIB.LuaCEF_AddOnLoadingCallback(self.frame, ffi.cast("loading_callback_t", cb))
+    CEF_LIB.LuaCEF_AddOnLoadingCallback(self.frame, ffi.cast("loading_callback_t", function(...)
+        local success, err = pcall(cb, ...)
+        if not success then
+            print(err)
+        end
+    end))
 end
 
 function RemoteWebView:addOnCloseCallback(cb)
-    CEF_LIB.LuaCEF_AddOnCloseCallback(self.frame, ffi.cast("frame_callback_t", cb))
+    CEF_LIB.LuaCEF_AddOnCloseCallback(self.frame, ffi.cast("frame_callback_t", function(...)
+        local success, err = pcall(cb, ...)
+        if not success then
+            print(err)
+        end
+    end))
 end
 
 function RemoteWebView:getTexture()
@@ -127,6 +147,15 @@ function RemoteWebView:executeJS(code)
     CEF_LIB.LuaCEF_ExecuteJS(self.frame, code)
 end
 
+function RemoteWebView:addBindFunction(name, cb)
+    CEF_LIB.LuaCEF_AddBindFunction(self.frame, name, ffi.cast("bind_function_callback_t", function(_, args)
+        local success, err = pcall(cb, _, decodeJson(encoding.UTF8:decode(ffi.string(args))))
+        if not success then
+            print(err)
+        end
+    end))
+end
+
 local MODULE_ = {
     frames_ = {}
 }
@@ -142,14 +171,24 @@ function MODULE_.isAnyInputActive()
 end
 
 function MODULE_.create(url, x, y, width, height, cb)
-    local frame = CEF_LIB.LuaCEF_Create(url, x, y, width, height, ffi.cast("frame_callback_t", cb))
+    local frame = CEF_LIB.LuaCEF_Create(url, x, y, width, height, ffi.cast("frame_callback_t", function(...)
+        local success, err = pcall(cb, ...)
+        if not success then
+            print(err)
+        end
+    end))
     local obj = RemoteWebView:new(frame, cb)
     MODULE_.frames_[frame] = obj
     return obj
 end
 
 function MODULE_.createFullscreen(url, cb)
-    local frame = CEF_LIB.LuaCEF_CreateFullscreen(url, ffi.cast("frame_callback_t", cb))
+    local frame = CEF_LIB.LuaCEF_CreateFullscreen(url, ffi.cast("frame_callback_t", function(...)
+        local success, err = pcall(cb, ...)
+        if not success then
+            print(err)
+        end
+    end))
     local obj = RemoteWebView:new(frame, cb)
     MODULE_.frames_[frame] = obj
     return obj

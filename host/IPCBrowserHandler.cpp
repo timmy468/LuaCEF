@@ -112,6 +112,30 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                     });
             });
 
+        browser->AddOnBindFunctionCallback(
+            [this, pipe](BrowserView* browser, const CefString& function, const CefString& jsonArgs)
+            {
+                if (!ipcServer_)
+                    return;
+
+                ipcServer_->AddTaskToMessageThread(
+                    [this, pipe, browser, function, jsonArgs]()
+                    {
+                        ipc::BindFunctionResponse response{};
+
+                        response.browserId = browser->GetWebviewId();
+                        strcpy_s(response.function, sizeof(response.function), function.ToString().c_str());
+                        strcpy_s(response.args, sizeof(response.args), jsonArgs.ToString().c_str());
+
+                        std::println(std::cout, "Sending BindFunctionResponse command");
+                        if (!ipc::IPCServer::Send(pipe, ipc::CommandType::BindFunctionResponse, response))
+                        {
+                            std::cerr << "Failed to send BindFunctionResponse" << std::endl;
+                        }
+                        std::println(std::cout, "BindFunctionResponse command sent");
+                    });
+            });
+
         ipc::CreateWebViewResponse response{};
 
         response.id = browser->GetWebviewId();

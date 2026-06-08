@@ -8,7 +8,7 @@ using frame_callback_t = void(__stdcall*)(RemoteWebView*);
 
 using loading_callback_t = void(__stdcall*)(RemoteWebView*, int);
 
-using json_callback_t = void(__stdcall*)(RemoteWebView*, const char*, const char**, int);
+using bind_function_callback_t = void(__stdcall*)(RemoteWebView*, const char*);
 
 extern "C"
 {
@@ -120,6 +120,18 @@ extern "C"
             return;
 
         view->AddOnCloseCallback([callback](RemoteWebView* view) { callback(view); });
+    }
+
+    API_EXPORT void LuaCEF_AddBindFunction(RemoteWebView* view, const char* name, bind_function_callback_t callback)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        view->AddBindFunction(name, [callback](RemoteWebView* view, const std::string& args)
+                              { callback(view, args.c_str()); });
     }
 
     API_EXPORT bool LuaCEF_IsInputActive(RemoteWebView* view)

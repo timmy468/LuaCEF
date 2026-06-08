@@ -14,6 +14,29 @@ BrowserView::BrowserView(uint32_t id, int32_t x, int32_t y, int32_t width, int32
     std::println(std::cout, "BrowserView::BrowserView() {:p} {:d} {:d}", (void*)this, width, height);
 }
 
+bool BrowserView::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                                           CefProcessId source_process, CefRefPtr<CefProcessMessage> message)
+{
+    if (message->GetName() == "BindFunctionCall")
+    {
+        auto args = message->GetArgumentList();
+
+        const CefString function = args->GetString(0);
+        const CefString jsonArgs = args->GetString(1);
+
+        std::println(std::cout, "BindFunctionCall {} {}", function.ToString(), jsonArgs.ToString());
+
+        for (auto& callback : onBindFunctionCallbacks_)
+        {
+            callback(this, function, jsonArgs);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectList&, const void* buffer, int width,
                           int height)
 {

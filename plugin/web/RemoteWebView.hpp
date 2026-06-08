@@ -20,7 +20,7 @@ class RemoteWebView
 
     using FrameCallback = std::function<void(RemoteWebView*)>;
     using LoadingCallback = std::function<void(RemoteWebView*, int)>;
-    using JsonCallback = std::function<void(RemoteWebView*, const char*, const char**, int)>;
+    using BindFunctionCallback = std::function<void(RemoteWebView*, const std::string&)>;
 
   public:
     RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x, int y,
@@ -32,6 +32,7 @@ class RemoteWebView
     void OnLoading(int httpStatusCode);
     void OnClose();
     void OnURLChanged(const std::string& url);
+    void OnBindFunctionCall(const std::string& function, const std::string& args);
 
     void AddOnAfterCreateCallback(FrameCallback callback)
     {
@@ -46,6 +47,11 @@ class RemoteWebView
     void AddOnCloseCallback(FrameCallback callback)
     {
         onCloseCallbacks_.push_back(callback);
+    }
+
+    void AddBindFunction(const std::string& name, BindFunctionCallback callback)
+    {
+        bindFunctions_[name] = callback;
     }
 
     void Close();
@@ -148,6 +154,8 @@ class RemoteWebView
     std::vector<FrameCallback> onAfterCreateCallbacks_;
     std::vector<LoadingCallback> onLoadingCallbacks_;
     std::vector<FrameCallback> onCloseCallbacks_;
+
+    std::unordered_map<std::string, BindFunctionCallback> bindFunctions_;
 
     ipc::SharedMemory sharedMemory_;
     SharedFrame* frame_{};

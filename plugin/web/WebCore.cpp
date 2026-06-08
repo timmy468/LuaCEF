@@ -628,6 +628,34 @@ void WebCore::MessageReceiveThreadProc()
             break;
         }
 
+        case ipc::CommandType::BindFunctionResponse:
+        {
+            if (header.payloadSize != sizeof(ipc::BindFunctionResponse))
+            {
+                std::cerr << "Invalid BindFunctionResponse payload size" << std::endl;
+                break;
+            }
+
+            ipc::BindFunctionResponse response{};
+
+            if (!ipcClient_->ReceivePayload(response))
+            {
+                std::cerr << "Failed to receive BindFunctionResponse payload" << std::endl;
+                break;
+            }
+
+            const uint32_t browserId = response.browserId;
+            const std::string function = response.function;
+            const std::string args = response.args;
+
+            std::cout << "BindFunctionResponse browser with id " << browserId << std::endl;
+
+            AddTaskToGameThread([this, browserId, function, args]()
+                                { webviewIdMap_[browserId]->OnBindFunctionCall(function, args); });
+
+            break;
+        }
+
         default:
         {
             // std::array<uint8_t, 8192> dummy{};

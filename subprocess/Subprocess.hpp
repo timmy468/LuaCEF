@@ -5,6 +5,10 @@
 #include <cef_app.h>
 #include <cef_browser.h>
 
+#include <cef_process_message.h>
+
+#include "V8Helpers.hpp"
+
 class Subprocess : public CefApp, public CefRenderProcessHandler
 {
 
@@ -41,6 +45,15 @@ class Subprocess : public CefApp, public CefRenderProcessHandler
     virtual void OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                                   CefRefPtr<CefV8Context> context) override
     {
+        auto global = context->GetGlobal();
+
+        auto luaObject = CefV8Value::CreateObject(nullptr, nullptr);
+
+        auto handler = new V8Helpers::LuaV8Handler();
+
+        luaObject->SetValue("call", CefV8Value::CreateFunction("call", handler), V8_PROPERTY_ATTRIBUTE_NONE);
+
+        global->SetValue("lua", luaObject, V8_PROPERTY_ATTRIBUTE_NONE);
     }
 
     virtual void OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,

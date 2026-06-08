@@ -16,13 +16,24 @@ function main()
     sampAddChatMessage("LuaCEF version: " .. luacef.VERSION, 0xFFFF00)
 
     webView = luacef.create(
-        "https://music.wntn.ru/", 500, 500, 500, 500, function(_)
+        "file:///c:/Games/Advance Games/testcef/index.html", 500, 500, 500, 500, function(_)
             webView:setInput(true)
             sampAddChatMessage("WebView created!", 0x00FF00)
         end)
 
+    webView:addBindFunction("test", function(_, args)
+        for k, v in pairs(args) do
+            print(k, v)
+        end
+    end)
+
+    webView:addBindFunction("inputChanged", function(_, args)
+        sampAddChatMessage("Input: " .. args[1], -1)
+    end)
+
     webView:addOnLoadingCallback(function(_, httpStatusCode)
         sampAddChatMessage("Loading status: " .. httpStatusCode, 0x00FF00)
+        webView:executeJS([[document.getElementById("title").style.color = "red";]])
     end)
 
     -- webView:addOnCloseCallback(function(_)
@@ -32,12 +43,12 @@ function main()
 
     -- "file:///C:/Users/egaaa/Videos/36094040.mp4"
 
-    -- webView2 = luacef.create(
-    --     "https://threejs.org/examples/#webgl_loader_gltf", 0, 0, 500, 500, function(_)
-    --         -- webView:setInput(true)
-    --         sampAddChatMessage("WebView2 created!", 0x00FF00)
-    --         -- webView:loadURL("https://www.youtube.com/")
-    --     end)
+    webView2 = luacef.create(
+        "https://threejs.org/examples/#webgl_loader_gltf", 0, 0, 500, 500, function(_)
+            -- webView:setInput(true)
+            sampAddChatMessage("WebView2 created!", 0x00FF00)
+            -- webView:loadURL("https://www.youtube.com/")
+        end)
 
     wait(-1)
 end

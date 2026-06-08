@@ -15,6 +15,8 @@ enum class CommandType : uint16_t
     LoadingResponse,
     URLChangedResponse,
 
+    BindFunctionResponse,
+
     SetRect,
     LoadURL,
     ReloadPage,
@@ -78,6 +80,15 @@ struct URLChangedResponse
     uint32_t id;
 
     char url[512];
+};
+
+struct BindFunctionResponse
+{
+    uint32_t browserId;
+
+    char function[64];
+
+    char args[4096];
 };
 
 struct SetRectCmd

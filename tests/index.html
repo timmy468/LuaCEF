@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LuaCEF Test</title>
+</head>
+
+<body>
+    <script>
+        function test() {
+            lua.call(
+                "test",
+                "abc",
+                123,
+                true,
+                null,
+                undefined,
+                { a: 1, b: 2 }
+            );
+        }
+
+        function sendInput() {
+            const text =
+                document.getElementById("input").value;
+
+            lua.call(
+                "inputChanged",
+                text
+            );
+        }
+
+        function changeTitleColor(color) {
+            document.getElementById("title").style.color = color;
+        }
+    </script>
+
+    <h1 id="title">Hello World!</h1>
+
+    <button onclick="test()">
+        Test
+    </button>
+
+    <br><br>
+
+    <input id="input" type="text" placeholder="Type something..." style="width: 300px;">
+
+    <button onclick="sendInput()">
+        Send Input
+    </button>
+
+    <br><br>
+
+    <button onclick="changeTitleColor('red')">
+        Red
+    </button>
+
+    <button onclick="changeTitleColor('green')">
+        Green
+    </button>
+
+    <button onclick="changeTitleColor('blue')">
+        Blue
+    </button>
+</body>
+
+</html>

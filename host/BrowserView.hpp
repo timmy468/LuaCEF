@@ -17,6 +17,7 @@ class BrowserView : public CefClient,
     using ViewCallback = std::function<void(BrowserView*)>;
     using LoadingCallback = std::function<void(BrowserView*, int)>;
     using AddressChangeCallback = std::function<void(BrowserView*, const CefString&)>;
+    using LuaCallback = std::function<void(BrowserView*, const CefString&, const CefString&)>;
 
   public:
     BrowserView(uint32_t id, int x, int y, int width, int height);
@@ -41,6 +42,9 @@ class BrowserView : public CefClient,
     {
         return this;
     }
+
+    virtual bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                                          CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
 
     // CefRenderHandler
     void OnPaint(CefRefPtr<CefBrowser>, PaintElementType type, const RectList& dirtyRects, const void* buffer,
@@ -88,6 +92,11 @@ class BrowserView : public CefClient,
         onAddressChangeCallbacks_.push_back(callback);
     }
 
+    void AddOnBindFunctionCallback(LuaCallback callback)
+    {
+        onBindFunctionCallbacks_.push_back(callback);
+    }
+
     void SetRect(int x, int y, int width, int height)
     {
         x_ = x;
@@ -113,6 +122,7 @@ class BrowserView : public CefClient,
     std::vector<ViewCallback> onCloseCallbacks_;
     std::vector<LoadingCallback> onLoadingCallbacks_;
     std::vector<AddressChangeCallback> onAddressChangeCallbacks_;
+    std::vector<LuaCallback> onBindFunctionCallbacks_;
 
     IMPLEMENT_REFCOUNTING(BrowserView);
 };

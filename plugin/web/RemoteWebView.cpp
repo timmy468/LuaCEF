@@ -57,6 +57,17 @@ void RemoteWebView::OnURLChanged(const std::string& url)
     url_ = url;
 }
 
+void RemoteWebView::OnBindFunctionCall(const std::string& function, const std::string& args)
+{
+    std::println(std::cout, "RemoteWebView::OnBindFunctionCall() {} {}", function, args);
+
+    auto it = bindFunctions_.find(function);
+    if (it != bindFunctions_.end())
+    {
+        it->second(this, args);
+    }
+}
+
 void RemoteWebView::Close()
 {
     SetInputEnabled(false);
