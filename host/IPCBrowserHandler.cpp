@@ -160,6 +160,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::CloseWebViewCmd*>(payload);
 
+        std::println(std::cout, "IPC CloseWebView {}", cmd->id);
+
         auto it = browsers_.find(cmd->id);
 
         if (it != browsers_.end())
@@ -184,6 +186,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::SetRectCmd*>(payload);
 
+        std::println(std::cout, "IPC SetRect[{}] {}, {}, {}, {}", cmd->id, cmd->x, cmd->y, cmd->width, cmd->height);
+
         auto it = browsers_.find(cmd->id);
 
         if (it != browsers_.end())
@@ -202,6 +206,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
             return;
 
         auto* cmd = static_cast<const ipc::LoadURLCmd*>(payload);
+
+        std::println(std::cout, "IPC LoadURL[{}] {}", cmd->id, cmd->url);
 
         auto it = browsers_.find(cmd->id);
 
@@ -225,6 +231,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
             return;
 
         auto* cmd = static_cast<const ipc::ReloadPageCmd*>(payload);
+
+        std::println(std::cout, "IPC ReloadPage[{}] {}", cmd->id, cmd->ignoreCache);
 
         auto it = browsers_.find(cmd->id);
 
@@ -256,6 +264,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::GoBackCmd*>(payload);
 
+        std::println(std::cout, "IPC GoBack[{}]", cmd->id);
+
         auto it = browsers_.find(cmd->id);
 
         if (it != browsers_.end())
@@ -275,6 +285,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
             return;
 
         auto* cmd = static_cast<const ipc::GoForwardCmd*>(payload);
+
+        std::println(std::cout, "IPC GoForward[{}]", cmd->id);
 
         auto it = browsers_.find(cmd->id);
 
@@ -296,6 +308,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
             return;
 
         auto* cmd = static_cast<const ipc::ExecuteJSCmd*>(payload);
+
+        std::println(std::cout, "IPC ExecuteJS[{}] {}", cmd->id, cmd->code);
 
         auto it = browsers_.find(cmd->id);
 
