@@ -45,6 +45,7 @@ find_package(plugin-sdk REQUIRED)
 
 target_link_libraries(LuaCEFPlugin PRIVATE
     cef-ipc
+    cef-common
     plugintmplt
     pluginsdk::gtasa
     kthook

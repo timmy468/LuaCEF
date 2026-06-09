@@ -3,6 +3,8 @@
 #include <format>
 #include <iostream>
 
+#include "Logger.hpp"
+
 BrowserView::BrowserView(uint32_t id, int32_t x, int32_t y, int32_t width, int32_t height)
     : x_(x), y_(y), width_(width), height_(height), webviewId(id)
 {
@@ -11,7 +13,7 @@ BrowserView::BrowserView(uint32_t id, int32_t x, int32_t y, int32_t width, int32
 
     frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
 
-    std::println(std::cout, "BrowserView::BrowserView() {:p} {:d} {:d}", (void*)this, width, height);
+    Logger::Instance().Log("BrowserView::BrowserView() {:p} {:d} {:d}", (void*)this, width, height);
 }
 
 bool BrowserView::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
@@ -24,7 +26,7 @@ bool BrowserView::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRef
         const CefString function = args->GetString(0);
         const CefString jsonArgs = args->GetString(1);
 
-        std::println(std::cout, "BindFunctionCall {} {}", function.ToString(), jsonArgs.ToString());
+        Logger::Instance().Log("BindFunctionCall {} {}", function.ToString(), jsonArgs.ToString());
 
         for (auto& callback : onBindFunctionCallbacks_)
         {
@@ -43,7 +45,7 @@ void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectLis
     if (!frame_)
         return;
 
-    std::println(std::cout, "BrowserView::OnPaint() {:p} {:d} {:d}", (void*)this, width, height);
+    Logger::Instance().Log("BrowserView::OnPaint() {:p} {:d} {:d}", (void*)this, width, height);
 
     frame_->header.width = width;
     frame_->header.height = height;
@@ -60,7 +62,7 @@ void BrowserView::GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect)
 
 void BrowserView::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 {
-    std::println(std::cout, "BrowserView::OnAfterCreated() {:p} {:d} {:d}", (void*)this, width_, height_);
+    Logger::Instance().Log("BrowserView::OnAfterCreated() {:p} {:d} {:d}", (void*)this, width_, height_);
 
     browser_ = browser;
 

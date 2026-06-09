@@ -7,6 +7,8 @@
 
 #include "utils/samp_utils.hpp"
 
+#include "Logger.hpp"
+
 RemoteWebView::RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x,
                              int y, int width, int height, FrameCallback onCreate)
     : ipcClient_(ipcClient), browserId_(id), device_(device), width_(width), height_(height), x_(x), y_(y)
@@ -26,11 +28,11 @@ void RemoteWebView::AttachBrowser()
     if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}", static_cast<uint32_t>(browserId_))))
     {
         frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
-        std::println(std::cout, "SharedFrame: {:p} {} {}", (void*)frame_, frame_->header.width, frame_->header.height);
+        Logger::Instance().Log("SharedFrame: {:p} {} {}", (void*)frame_, frame_->header.width, frame_->header.height);
     }
     else
     {
-        std::println(std::cout, "Failed to open shared memory: {}", (void*)sharedMemory_.GetBuffer());
+        Logger::Instance().Log("Failed to open shared memory: {}", (void*)sharedMemory_.GetBuffer());
     }
 }
 
@@ -59,7 +61,7 @@ void RemoteWebView::OnURLChanged(const std::string& url)
 
 void RemoteWebView::OnBindFunctionCall(const std::string& function, const std::string& args)
 {
-    std::println(std::cout, "RemoteWebView::OnBindFunctionCall() {} {}", function, args);
+    Logger::Instance().Log("RemoteWebView::OnBindFunctionCall() {} {}", function, args);
 
     auto it = bindFunctions_.find(function);
     if (it != bindFunctions_.end())
@@ -146,7 +148,7 @@ void RemoteWebView::CreateTexture(uint32_t width, uint32_t height)
 
     if (FAILED(hr))
     {
-        std::println(std::cerr, "CreateTexture failed {:08X}", static_cast<uint32_t>(hr));
+        Logger::Instance().Log("CreateTexture failed {:08X}", static_cast<uint32_t>(hr));
     }
 }
 

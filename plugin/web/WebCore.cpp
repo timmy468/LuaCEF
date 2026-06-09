@@ -8,6 +8,8 @@
 
 #include "utils/samp_utils.hpp"
 
+#include "Logger.hpp"
+
 void WebCore::Initialize(IDirect3DDevice9* device)
 {
     device_ = device;
@@ -15,7 +17,7 @@ void WebCore::Initialize(IDirect3DDevice9* device)
     processManager_ = std::make_unique<ProcessManager>();
     if (!processManager_->Start())
     {
-        std::cerr << "Failed to start CEF subprocess" << std::endl;
+        Logger::Instance().Log("Failed to start CEF subprocess");
         device_ = nullptr;
         return;
     }
@@ -29,7 +31,7 @@ void WebCore::Initialize(IDirect3DDevice9* device)
         ipcClient_ = std::make_shared<ipc::IPCClient>();
         if (ipcClient_->Connect())
         {
-            std::cout << "WebCore initialized, connected to subprocess" << std::endl;
+            Logger::Instance().Log("WebCore initialized, connected to subprocess");
 
             // Запустить поток для получения сообщений
             StartMessageReceiveThread();
@@ -37,7 +39,7 @@ void WebCore::Initialize(IDirect3DDevice9* device)
         }
     }
 
-    std::cerr << "Failed to connect to CEF subprocess (timeout)" << std::endl;
+    Logger::Instance().Log("Failed to connect to CEF subprocess (timeout)");
     processManager_->Stop();
     processManager_ = nullptr;
     device_ = nullptr;
@@ -79,17 +81,17 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
     AddTaskToMessageThread(
         [this, cmd]()
         {
-            std::println(std::cout, "Sending CreateWebView command");
+            Logger::Instance().Log("Sending CreateWebView command");
             if (!ipcClient_->Send(ipc::CommandType::CreateWebView, cmd))
             {
-                std::cerr << "Failed to send CreateWebView" << std::endl;
+                Logger::Instance().Log("Failed to send CreateWebView");
 
                 return;
             }
-            std::println(std::cout, "CreateWebView command sent");
+            Logger::Instance().Log("CreateWebView command sent");
         });
 
-    std::println(std::cout, "WebView created with id {}", cmd.id);
+    Logger::Instance().Log("WebView created with id {}", cmd.id);
 
     return webView;
 }
@@ -107,12 +109,12 @@ void WebCore::Close(RemoteWebView* view)
         AddTaskToMessageThread(
             [this, cmd]()
             {
-                std::println(std::cout, "Sending CloseWebView command");
+                Logger::Instance().Log("Sending CloseWebView command");
                 if (!ipcClient_->Send(ipc::CommandType::CloseWebView, cmd))
                 {
-                    std::cerr << "Failed to send CloseWebView command" << std::endl;
+                    Logger::Instance().Log("Failed to send CloseWebView command");
                 }
-                std::println(std::cout, "CloseWebView command sent");
+                Logger::Instance().Log("CloseWebView command sent");
             });
 
         // todo: handle this
@@ -135,12 +137,12 @@ void WebCore::LoadURL(RemoteWebView* view, const std::string& url)
         AddTaskToMessageThread(
             [this, cmd]()
             {
-                std::println(std::cout, "Sending LoadURL command");
+                Logger::Instance().Log("Sending LoadURL command");
                 if (!ipcClient_->Send(ipc::CommandType::LoadURL, cmd))
                 {
-                    std::cerr << "Failed to send LoadURL command" << std::endl;
+                    Logger::Instance().Log("Failed to send LoadURL command");
                 }
-                std::println(std::cout, "LoadURL command sent");
+                Logger::Instance().Log("LoadURL command sent");
             });
     }
 }
@@ -157,12 +159,12 @@ void WebCore::ReloadPage(RemoteWebView* view, bool ignoreCache)
         AddTaskToMessageThread(
             [this, cmd]()
             {
-                std::println(std::cout, "Sending ReloadPage command");
+                Logger::Instance().Log("Sending ReloadPage command");
                 if (!ipcClient_->Send(ipc::CommandType::ReloadPage, cmd))
                 {
-                    std::cerr << "Failed to send ReloadPage command" << std::endl;
+                    Logger::Instance().Log("Failed to send ReloadPage command");
                 }
-                std::println(std::cout, "ReloadPage command sent");
+                Logger::Instance().Log("ReloadPage command sent");
             });
     }
 }
@@ -178,12 +180,12 @@ void WebCore::GoBack(RemoteWebView* view)
         AddTaskToMessageThread(
             [this, cmd]()
             {
-                std::println(std::cout, "Sending GoBack command");
+                Logger::Instance().Log("Sending GoBack command");
                 if (!ipcClient_->Send(ipc::CommandType::GoBack, cmd))
                 {
-                    std::cerr << "Failed to send GoBack command" << std::endl;
+                    Logger::Instance().Log("Failed to send GoBack command");
                 }
-                std::println(std::cout, "GoBack command sent");
+                Logger::Instance().Log("GoBack command sent");
             });
     }
 }
@@ -199,12 +201,12 @@ void WebCore::GoForward(RemoteWebView* view)
         AddTaskToMessageThread(
             [this, cmd]()
             {
-                std::println(std::cout, "Sending GoForward command");
+                Logger::Instance().Log("Sending GoForward command");
                 if (!ipcClient_->Send(ipc::CommandType::GoForward, cmd))
                 {
-                    std::cerr << "Failed to send GoForward command" << std::endl;
+                    Logger::Instance().Log("Failed to send GoForward command");
                 }
-                std::println(std::cout, "GoForward command sent");
+                Logger::Instance().Log("GoForward command sent");
             });
     }
 }
@@ -221,12 +223,12 @@ void WebCore::ExecuteJS(RemoteWebView* view, const std::string& code)
         AddTaskToMessageThread(
             [this, cmd]()
             {
-                std::println(std::cout, "Sending ExecuteJS command");
+                Logger::Instance().Log("Sending ExecuteJS command");
                 if (!ipcClient_->Send(ipc::CommandType::ExecuteJS, cmd))
                 {
-                    std::cerr << "Failed to send ExecuteJS command" << std::endl;
+                    Logger::Instance().Log("Failed to send ExecuteJS command");
                 }
-                std::println(std::cout, "ExecuteJS command sent");
+                Logger::Instance().Log("ExecuteJS command sent");
             });
     }
 }
@@ -265,8 +267,8 @@ void WebCore::Render()
 
         if (auto texture = view->GetTexture())
         {
-            std::println(std::cout, "Rendering texture {} {} {} {}", view->GetX(), view->GetY(), view->GetWidth(),
-                         view->GetHeight());
+            Logger::Instance().Log("Rendering texture {} {} {} {}", view->GetX(), view->GetY(), view->GetWidth(),
+                                   view->GetHeight());
 
             static RwRaster* raster{};
             if (!raster)
@@ -326,7 +328,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     if (!ipcClient_->Send(ipc::CommandType::MouseMove, cmd))
                     {
-                        std::cerr << "Failed to send MouseMove command" << std::endl;
+                        Logger::Instance().Log("Failed to send MouseMove command");
                     }
                 });
 
@@ -377,7 +379,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     if (!ipcClient_->Send(ipc::CommandType::MouseClick, cmd))
                     {
-                        std::cerr << "Failed to send MouseClick command" << std::endl;
+                        Logger::Instance().Log("Failed to send MouseClick command");
                     }
                 });
             return true;
@@ -398,7 +400,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     if (!ipcClient_->Send(ipc::CommandType::MouseWheel, cmd))
                     {
-                        std::cerr << "Failed to send MouseWheel command" << std::endl;
+                        Logger::Instance().Log("Failed to send MouseWheel command");
                     }
                 });
             return true;
@@ -440,7 +442,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 {
                     if (!ipcClient_->Send(ipc::CommandType::Key, cmd))
                     {
-                        std::cerr << "Failed to send Key command" << std::endl;
+                        Logger::Instance().Log("Failed to send Key command");
                     }
                 });
 
@@ -471,7 +473,7 @@ void WebCore::StartMessageReceiveThread()
 
 void WebCore::MessageReceiveThreadProc()
 {
-    std::cout << "Message thread started\n";
+    Logger::Instance().Log("Message thread started");
 
     while (messageThreadRunning_)
     {
@@ -485,14 +487,14 @@ void WebCore::MessageReceiveThreadProc()
 
         ipc::MessageHeader header{};
 
-        std::cout << "Waiting header...\n";
+        Logger::Instance().Log("Waiting header...");
         if (!ipcClient_->ReceiveHeader(header))
         {
-            std::cout << "Receive failed\n";
+            Logger::Instance().Log("Receive failed");
             continue;
         }
 
-        std::cout << "Header received\n";
+        Logger::Instance().Log("Header received");
 
         switch (header.type)
         {
@@ -500,7 +502,7 @@ void WebCore::MessageReceiveThreadProc()
         {
             if (header.payloadSize != sizeof(ipc::CreateWebViewResponse))
             {
-                std::cerr << "Invalid CreateWebViewResponse payload size" << std::endl;
+                Logger::Instance().Log("Invalid CreateWebViewResponse payload size");
                 break;
             }
 
@@ -508,13 +510,13 @@ void WebCore::MessageReceiveThreadProc()
 
             if (!ipcClient_->ReceivePayload(response))
             {
-                std::cerr << "Failed to receive CreateWebViewResponse payload" << std::endl;
+                Logger::Instance().Log("Failed to receive CreateWebViewResponse payload");
                 break;
             }
 
             const uint32_t browserId = response.id;
 
-            std::cout << "Attaching browser with id " << browserId << std::endl;
+            Logger::Instance().Log("Attaching browser with id {}", browserId);
 
             AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->AttachBrowser(); });
 
@@ -525,7 +527,7 @@ void WebCore::MessageReceiveThreadProc()
         {
             if (header.payloadSize != sizeof(ipc::CloseWebViewResponse))
             {
-                std::cerr << "Invalid CloseWebViewResponse payload size" << std::endl;
+                Logger::Instance().Log("Invalid CloseWebViewResponse payload size");
                 break;
             }
 
@@ -533,13 +535,13 @@ void WebCore::MessageReceiveThreadProc()
 
             if (!ipcClient_->ReceivePayload(response))
             {
-                std::cerr << "Failed to receive CloseWebViewResponse payload" << std::endl;
+                Logger::Instance().Log("Failed to receive CloseWebViewResponse payload");
                 break;
             }
 
             const uint32_t browserId = response.id;
 
-            std::cout << "Closing browser with id " << browserId << std::endl;
+            Logger::Instance().Log("Closing browser with id {}", browserId);
 
             AddTaskToGameThread(
                 [this, browserId]()
@@ -555,7 +557,7 @@ void WebCore::MessageReceiveThreadProc()
         {
             if (header.payloadSize != sizeof(ipc::LoadingResponse))
             {
-                std::cerr << "Invalid LoadingResponse payload size" << std::endl;
+                Logger::Instance().Log("Invalid LoadingResponse payload size");
                 break;
             }
 
@@ -563,13 +565,13 @@ void WebCore::MessageReceiveThreadProc()
 
             if (!ipcClient_->ReceivePayload(response))
             {
-                std::cerr << "Failed to receive LoadingResponse payload" << std::endl;
+                Logger::Instance().Log("Failed to receive LoadingResponse payload");
                 break;
             }
 
             const uint32_t browserId = response.id;
 
-            std::cout << "Loading browser with id " << browserId << std::endl;
+            Logger::Instance().Log("Loading browser with id {}", browserId);
 
             AddTaskToGameThread([this, browserId, response]()
                                 { webviewIdMap_[browserId]->OnLoading(response.httpStatusCode); });
@@ -581,7 +583,7 @@ void WebCore::MessageReceiveThreadProc()
         {
             if (header.payloadSize != sizeof(ipc::AfterCreateResponse))
             {
-                std::cerr << "Invalid AfterCreateResponse payload size" << std::endl;
+                Logger::Instance().Log("Invalid AfterCreateResponse payload size");
                 break;
             }
 
@@ -589,13 +591,13 @@ void WebCore::MessageReceiveThreadProc()
 
             if (!ipcClient_->ReceivePayload(response))
             {
-                std::cerr << "Failed to receive AfterCreateResponse payload" << std::endl;
+                Logger::Instance().Log("Failed to receive AfterCreateResponse payload");
                 break;
             }
 
             const uint32_t browserId = response.id;
 
-            std::cout << "AfterCreateResponse browser with id " << browserId << std::endl;
+            Logger::Instance().Log("AfterCreateResponse browser with id {}", browserId);
 
             AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->OnAfterCreate(); });
 
@@ -606,7 +608,7 @@ void WebCore::MessageReceiveThreadProc()
         {
             if (header.payloadSize != sizeof(ipc::URLChangedResponse))
             {
-                std::cerr << "Invalid URLChangedResponse payload size" << std::endl;
+                Logger::Instance().Log("Invalid URLChangedResponse payload size");
                 break;
             }
 
@@ -614,14 +616,14 @@ void WebCore::MessageReceiveThreadProc()
 
             if (!ipcClient_->ReceivePayload(response))
             {
-                std::cerr << "Failed to receive URLChangedResponse payload" << std::endl;
+                Logger::Instance().Log("Failed to receive URLChangedResponse payload");
                 break;
             }
 
             const uint32_t browserId = response.id;
             const std::string url = response.url;
 
-            std::cout << "URLChangedResponse browser with id " << browserId << std::endl;
+            Logger::Instance().Log("URLChangedResponse browser with id {}", browserId);
 
             AddTaskToGameThread([this, browserId, url]() { webviewIdMap_[browserId]->OnURLChanged(url); });
 
@@ -632,7 +634,7 @@ void WebCore::MessageReceiveThreadProc()
         {
             if (header.payloadSize != sizeof(ipc::BindFunctionResponse))
             {
-                std::cerr << "Invalid BindFunctionResponse payload size" << std::endl;
+                Logger::Instance().Log("Invalid BindFunctionResponse payload size");
                 break;
             }
 
@@ -640,7 +642,7 @@ void WebCore::MessageReceiveThreadProc()
 
             if (!ipcClient_->ReceivePayload(response))
             {
-                std::cerr << "Failed to receive BindFunctionResponse payload" << std::endl;
+                Logger::Instance().Log("Failed to receive BindFunctionResponse payload");
                 break;
             }
 
@@ -648,7 +650,7 @@ void WebCore::MessageReceiveThreadProc()
             const std::string function = response.function;
             const std::string args = response.args;
 
-            std::cout << "BindFunctionResponse browser with id " << browserId << std::endl;
+            Logger::Instance().Log("BindFunctionResponse browser with id {}", browserId);
 
             AddTaskToGameThread([this, browserId, function, args]()
                                 { webviewIdMap_[browserId]->OnBindFunctionCall(function, args); });

@@ -29,19 +29,19 @@ bool IPCClient::Connect(const std::string& pipe_name)
             DWORD mode = PIPE_READMODE_MESSAGE;
             if (!SetNamedPipeHandleState(pipe_handle_, &mode, nullptr, nullptr))
             {
-                std::cerr << "Failed to set pipe handle state: " << GetLastError() << std::endl;
+                Logger::Instance().Log("Failed to set pipe handle state: {}", GetLastError());
                 CloseHandle(pipe_handle_);
                 pipe_handle_ = INVALID_HANDLE_VALUE;
                 return false;
             }
 
-            std::cout << "Connected to IPC server" << std::endl;
+            Logger::Instance().Log("Connected to IPC server");
             return true;
         }
 
         if (GetLastError() != ERROR_PIPE_BUSY)
         {
-            std::cerr << "Failed to connect to pipe: " << GetLastError() << std::endl;
+            Logger::Instance().Log("Failed to connect to pipe: {}", GetLastError());
             return false;
         }
 
@@ -49,7 +49,7 @@ bool IPCClient::Connect(const std::string& pipe_name)
         Sleep(100);
     }
 
-    std::cerr << "Timeout waiting for IPC server to start" << std::endl;
+    Logger::Instance().Log("Timeout waiting for IPC server to start");
     return false;
 }
 
@@ -78,8 +78,8 @@ bool IPCClient::ReceiveHeader(MessageHeader& header)
 
     if (!ReadFile(pipe_handle_, &header, sizeof(header), &read, nullptr))
     {
-        std::println(std::cerr, "ReadFile failed. handle={} error={}", reinterpret_cast<uintptr_t>(pipe_handle_),
-                     GetLastError());
+        Logger::Instance().Log("ReadFile failed. handle={} error={}", reinterpret_cast<uintptr_t>(pipe_handle_),
+                               GetLastError());
         return false;
     }
 

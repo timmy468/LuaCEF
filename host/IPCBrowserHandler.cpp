@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+#include "Logger.hpp"
+
 IPCBrowserHandler::IPCBrowserHandler()
 {
 }
@@ -23,7 +25,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::CreateWebViewCmd*>(payload);
 
-        std::println(std::cout, "IPC CreateWebView {}", cmd->url);
+        Logger::Instance().Log("IPC CreateWebView {}", cmd->url);
 
         auto browser = CefRefPtr<BrowserView>(new BrowserView(cmd->id, cmd->x, cmd->y, cmd->width, cmd->height));
         browser->AddOnCreateCallback(
@@ -38,12 +40,12 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                         ipc::AfterCreateResponse cmd{};
                         cmd.id = browser->GetWebviewId();
 
-                        std::println(std::cout, "Sending AfterCreateResponse command");
+                        Logger::Instance().Log("Sending AfterCreateResponse command");
                         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::AfterCreateResponse, cmd))
                         {
-                            std::cerr << "Failed to send AfterCreateResponse" << std::endl;
+                            Logger::Instance().Log("Failed to send AfterCreateResponse");
                         }
-                        std::println(std::cout, "AfterCreateResponse command sent");
+                        Logger::Instance().Log("AfterCreateResponse command sent");
                     });
             });
 
@@ -59,12 +61,12 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                         ipc::CloseWebViewResponse cmd{};
                         cmd.id = browser->GetWebviewId();
 
-                        std::println(std::cout, "Sending CloseWebViewResponse command");
+                        Logger::Instance().Log("Sending CloseWebViewResponse command");
                         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::CloseWebViewResponse, cmd))
                         {
-                            std::cerr << "Failed to send CloseWebViewResponse" << std::endl;
+                            Logger::Instance().Log("Failed to send CloseWebViewResponse");
                         }
-                        std::println(std::cout, "CloseWebViewResponse command sent");
+                        Logger::Instance().Log("CloseWebViewResponse command sent");
                     });
             });
 
@@ -81,12 +83,12 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                         cmd.id = browser->GetWebviewId();
                         cmd.httpStatusCode = httpStatusCode;
 
-                        std::println(std::cout, "Sending LoadingResponse command");
+                        Logger::Instance().Log("Sending LoadingResponse command");
                         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::LoadingResponse, cmd))
                         {
-                            std::cerr << "Failed to send LoadingResponse" << std::endl;
+                            Logger::Instance().Log("Failed to send LoadingResponse");
                         }
-                        std::println(std::cout, "LoadingResponse command sent");
+                        Logger::Instance().Log("LoadingResponse command sent");
                     });
             });
 
@@ -103,12 +105,12 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                         cmd.id = browser->GetWebviewId();
                         strcpy_s(cmd.url, sizeof(cmd.url), url.ToString().c_str());
 
-                        std::println(std::cout, "Sending URLChangedResponse command");
+                        Logger::Instance().Log("Sending URLChangedResponse command");
                         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::URLChangedResponse, cmd))
                         {
-                            std::cerr << "Failed to send URLChangedResponse" << std::endl;
+                            Logger::Instance().Log("Failed to send URLChangedResponse");
                         }
-                        std::println(std::cout, "URLChangedResponse command sent");
+                        Logger::Instance().Log("URLChangedResponse command sent");
                     });
             });
 
@@ -127,12 +129,12 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                         strcpy_s(response.function, sizeof(response.function), function.ToString().c_str());
                         strcpy_s(response.args, sizeof(response.args), jsonArgs.ToString().c_str());
 
-                        std::println(std::cout, "Sending BindFunctionResponse command");
+                        Logger::Instance().Log("Sending BindFunctionResponse command");
                         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::BindFunctionResponse, response))
                         {
-                            std::cerr << "Failed to send BindFunctionResponse" << std::endl;
+                            Logger::Instance().Log("Failed to send BindFunctionResponse");
                         }
-                        std::println(std::cout, "BindFunctionResponse command sent");
+                        Logger::Instance().Log("BindFunctionResponse command sent");
                     });
             });
 
@@ -142,7 +144,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::CreateWebViewResponse, response))
         {
-            std::cerr << "Failed to send CreateWebViewResponse" << std::endl;
+            Logger::Instance().Log("Failed to send CreateWebViewResponse");
         }
 
         RegisterBrowser(cmd->id, browser);
@@ -171,8 +173,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                                 },
                                 browser, url));
 
-        std::println(std::cout, "BrowserView creation requested. id {}, url {}, width {}, height {}", cmd->id, cmd->url,
-                     cmd->width, cmd->height);
+        Logger::Instance().Log("BrowserView creation requested. id {}, url {}, width {}, height {}", cmd->id, cmd->url,
+                               cmd->width, cmd->height);
 
         break;
     }
@@ -184,7 +186,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::CloseWebViewCmd*>(payload);
 
-        std::println(std::cout, "IPC CloseWebView {}", cmd->id);
+        Logger::Instance().Log("IPC CloseWebView {}", cmd->id);
 
         auto it = browsers_.find(cmd->id);
 
@@ -210,7 +212,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::SetRectCmd*>(payload);
 
-        std::println(std::cout, "IPC SetRect[{}] {}, {}, {}, {}", cmd->id, cmd->x, cmd->y, cmd->width, cmd->height);
+        Logger::Instance().Log("IPC SetRect[{}] {}, {}, {}, {}", cmd->id, cmd->x, cmd->y, cmd->width, cmd->height);
 
         auto it = browsers_.find(cmd->id);
 
@@ -231,7 +233,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::LoadURLCmd*>(payload);
 
-        std::println(std::cout, "IPC LoadURL[{}] {}", cmd->id, cmd->url);
+        Logger::Instance().Log("IPC LoadURL[{}] {}", cmd->id, cmd->url);
 
         auto it = browsers_.find(cmd->id);
 
@@ -256,7 +258,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::ReloadPageCmd*>(payload);
 
-        std::println(std::cout, "IPC ReloadPage[{}] {}", cmd->id, cmd->ignoreCache);
+        Logger::Instance().Log("IPC ReloadPage[{}] {}", cmd->id, cmd->ignoreCache);
 
         auto it = browsers_.find(cmd->id);
 
@@ -288,7 +290,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::GoBackCmd*>(payload);
 
-        std::println(std::cout, "IPC GoBack[{}]", cmd->id);
+        Logger::Instance().Log("IPC GoBack[{}]", cmd->id);
 
         auto it = browsers_.find(cmd->id);
 
@@ -310,7 +312,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::GoForwardCmd*>(payload);
 
-        std::println(std::cout, "IPC GoForward[{}]", cmd->id);
+        Logger::Instance().Log("IPC GoForward[{}]", cmd->id);
 
         auto it = browsers_.find(cmd->id);
 
@@ -333,7 +335,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         auto* cmd = static_cast<const ipc::ExecuteJSCmd*>(payload);
 
-        std::println(std::cout, "IPC ExecuteJS[{}] {}", cmd->id, cmd->code);
+        Logger::Instance().Log("IPC ExecuteJS[{}] {}", cmd->id, cmd->code);
 
         auto it = browsers_.find(cmd->id);
 
@@ -376,7 +378,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
     {
         auto* cmd = static_cast<const ipc::MouseMoveCmd*>(payload);
 
-        std::println(std::cout, "MouseMove command received with id {}, x: {}, y: {}", cmd->id, cmd->x, cmd->y);
+        Logger::Instance().Log("MouseMove command received with id {}, x: {}, y: {}", cmd->id, cmd->x, cmd->y);
 
         auto it = browsers_.find(cmd->id);
         if (it != browsers_.end())
@@ -407,8 +409,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
     {
         auto* cmd = static_cast<const ipc::MouseClickCmd*>(payload);
 
-        std::println(std::cout, "MouseClick command received with id {}, x: {}, y: {}, button: {}, down: {}", cmd->id,
-                     cmd->x, cmd->y, cmd->button, cmd->mouseUp);
+        Logger::Instance().Log("MouseClick command received with id {}, x: {}, y: {}, button: {}, down: {}", cmd->id,
+                               cmd->x, cmd->y, cmd->button, cmd->mouseUp);
 
         auto it = browsers_.find(cmd->id);
         if (it != browsers_.end())
@@ -442,8 +444,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
     {
         auto* cmd = static_cast<const ipc::MouseWheelCmd*>(payload);
 
-        std::println(std::cout, "MouseWheel command received with id {}, x: {}, y: {}, delta: {}", cmd->id, cmd->x,
-                     cmd->y, cmd->delta);
+        Logger::Instance().Log("MouseWheel command received with id {}, x: {}, y: {}, delta: {}", cmd->id, cmd->x,
+                               cmd->y, cmd->delta);
 
         auto it = browsers_.find(cmd->id);
         if (it != browsers_.end())
@@ -473,9 +475,10 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
     case ipc::CommandType::Key:
     {
         auto* cmd = static_cast<const ipc::KeyCmd*>(payload);
-        std::println(std::cout,
-                     "Key command received with id {}, keycode: {}, nativeKeycode: {}, modifiers: {}, type: {}",
-                     cmd->id, cmd->keycode, cmd->nativeKeycode, cmd->modifiers, cmd->type);
+
+        Logger::Instance().Log(
+            "Key command received with id {}, keycode: {}, nativeKeycode: {}, modifiers: {}, type: {}", cmd->id,
+            cmd->keycode, cmd->nativeKeycode, cmd->modifiers, cmd->type);
 
         auto it = browsers_.find(cmd->id);
         if (it != browsers_.end())
@@ -508,7 +511,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
     default:
     {
-        std::println(std::cerr, "Unknown IPC command {}", static_cast<int>(type));
+        Logger::Instance().Log("Unknown IPC command {}", static_cast<int>(type));
 
         break;
     }

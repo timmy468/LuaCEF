@@ -7,6 +7,7 @@ add_executable(LuaCEFHost
 
 target_link_libraries(LuaCEFHost
     cef-ipc
+    cef-common
 )
 
 target_compile_features(LuaCEFHost PRIVATE cxx_std_23)

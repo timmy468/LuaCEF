@@ -5,11 +5,15 @@
 #include <kthook/kthook.hpp>
 #include <plugin.h>
 
+#include "Logger.hpp"
+
 using WndProc_t = LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM);
 
 void Plugin::OnAttach(void* handle)
 {
-    std::println(std::cout, "Plugin attached with handle: {}", handle);
+    Logger::Instance().SetLogFilePath(std::filesystem::current_path() / "luacef" / "plugin.log");
+
+    Logger::Instance().Log("Plugin attached with handle: {}", handle);
 
     webCore_ = std::make_shared<WebCore>();
 
@@ -18,7 +22,7 @@ void Plugin::OnAttach(void* handle)
 
 void Plugin::OnDetach()
 {
-    std::println(std::cout, "Plugin detached.");
+    Logger::Instance().Log("Plugin detached.");
 
     webCore_->Shutdown();
 }
@@ -56,8 +60,8 @@ RemoteWebView* Plugin::Create(const char* url, int x, int y, int width, int heig
     if (!IsInitialized())
         return nullptr;
 
-    std::println(std::cout, "Creating web view with URL: {}, x: {}, y: {}, width: {}, height: {}", url, x, y, width,
-                 height);
+    Logger::Instance().Log("Creating web view with URL: {}, x: {}, y: {}, width: {}, height: {}", url, x, y, width,
+                           height);
 
     auto webView = webCore_->Create(url, x, y, width, height, onCreate);
     return webView;
@@ -68,7 +72,7 @@ RemoteWebView* Plugin::CreateFullscreen(const char* url, RemoteWebView::FrameCal
     if (!IsInitialized())
         return nullptr;
 
-    std::println(std::cout, "Creating fullscreen web view with URL: {}", url);
+    Logger::Instance().Log("Creating fullscreen web view with URL: {}", url);
 
     auto webView = webCore_->Create(url, 0, 0, RsGlobal.maximumWidth, RsGlobal.maximumHeight, onCreate);
     return webView;
@@ -79,31 +83,31 @@ void Plugin::Close(RemoteWebView* view)
     if (!IsInitialized())
         return;
 
-    std::println(std::cout, "Closing web view.");
+    Logger::Instance().Log("Closing web view.");
     webCore_->Close(view);
 }
 
 void Plugin::OnRenderInit()
 {
-    std::println(std::cout, "Initializing render...");
+    Logger::Instance().Log("Initializing render...");
     webCore_->Initialize(GetD3DDevice());
-    std::println(std::cout, "Render initialized.");
+    Logger::Instance().Log("Render initialized.");
 
-    std::println(std::cout, "Installing game hooks...");
+    Logger::Instance().Log("Installing game hooks...");
     InstallGameHooks();
-    std::println(std::cout, "Game hooks installed.");
+    Logger::Instance().Log("Game hooks installed.");
 }
 
 void Plugin::OnD3DLost()
 {
-    std::println(std::cout, "D3D device lost.");
+    Logger::Instance().Log("D3D device lost.");
 
     webCore_->OnDeviceLost();
 }
 
 void Plugin::OnD3DReset()
 {
-    std::println(std::cout, "D3D device reset.");
+    Logger::Instance().Log("D3D device reset.");
 
     webCore_->OnDeviceReset();
 }

@@ -6,6 +6,7 @@
 #include <string>
 
 #include "IPCMessage.hpp"
+#include "Logger.hpp"
 
 namespace ipc
 {
@@ -49,29 +50,29 @@ template <typename T> bool IPCClient::Send(CommandType type, const T& payload)
 
     DWORD written{};
 
-    // std::println(std::cout, "Sending message of type {} {}", static_cast<int>(type), pipe_handle_);
+    // Logger::Instance().Log("Sending message of type {} {}", static_cast<int>(type), pipe_handle_);
 
     if (!WriteFile(pipe_handle_, &header, sizeof(header), &written, nullptr))
     {
-        std::println(std::cerr, "WriteFile failed. handle={} error={}", reinterpret_cast<uintptr_t>(pipe_handle_),
-                     GetLastError());
+        Logger::Instance().Log("WriteFile failed. handle={} error={}", reinterpret_cast<uintptr_t>(pipe_handle_),
+                               GetLastError());
 
         return false;
     }
 
-    // std::println(std::cout, "Sending message of type2 {} {}", static_cast<int>(type), pipe_handle_);
+    // Logger::Instance().Log("Sending message of type2 {} {}", static_cast<int>(type), pipe_handle_);
 
     if (written != sizeof(header))
         return false;
 
-    // std::println(std::cout, "Sending message of type3 {} {}", static_cast<int>(type), pipe_handle_);
+    // Logger::Instance().Log("Sending message of type3 {} {}", static_cast<int>(type), pipe_handle_);
 
     if (!WriteFile(pipe_handle_, &payload, sizeof(T), &written, nullptr))
     {
         return false;
     }
 
-    // std::println(std::cout, "Sending message of type4 {} {}", static_cast<int>(type), pipe_handle_);
+    // Logger::Instance().Log("Sending message of type4 {} {}", static_cast<int>(type), pipe_handle_);
 
     return written == sizeof(T);
 }

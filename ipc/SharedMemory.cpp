@@ -1,6 +1,8 @@
 #include "SharedMemory.hpp"
 #include <iostream>
 
+#include "Logger.hpp"
+
 namespace ipc
 {
 
@@ -26,7 +28,7 @@ bool SharedMemory::Create(const std::string& name)
 
     if (handle_ == nullptr)
     {
-        std::cerr << "Failed to create shared memory: " << GetLastError() << std::endl;
+        Logger::Instance().Log("Failed to create shared memory: {}", GetLastError());
         return false;
     }
 
@@ -35,14 +37,14 @@ bool SharedMemory::Create(const std::string& name)
 
     if (buffer_ptr_ == nullptr)
     {
-        std::cerr << "Failed to map shared memory: " << GetLastError() << std::endl;
+        Logger::Instance().Log("Failed to map shared memory: {}", GetLastError());
         CloseHandle(handle_);
         handle_ = nullptr;
         return false;
     }
 
-    std::cout << "Shared memory created: " << name_ << " (" << sizeof(SharedFrame) / (1024 * 1024) << " MB)"
-              << std::endl;
+    Logger::Instance().Log("Shared memory created: {} ({} MB)", name_, sizeof(SharedFrame) / (1024 * 1024));
+
     return true;
 }
 
@@ -55,7 +57,7 @@ bool SharedMemory::Open(const std::string& name)
 
     if (handle_ == nullptr)
     {
-        std::cerr << "Failed to open shared memory: " << GetLastError() << std::endl;
+        Logger::Instance().Log("Failed to open shared memory: {}", GetLastError());
         return false;
     }
 
@@ -64,14 +66,13 @@ bool SharedMemory::Open(const std::string& name)
 
     if (buffer_ptr_ == nullptr)
     {
-        std::cerr << "Failed to map shared memory: " << GetLastError() << std::endl;
+        Logger::Instance().Log("Failed to map shared memory: {}", GetLastError());
         CloseHandle(handle_);
         handle_ = nullptr;
         return false;
     }
 
-    std::cout << "Shared memory opened: " << name_ << " (" << sizeof(SharedFrame) / (1024 * 1024) << " MB)"
-              << std::endl;
+    Logger::Instance().Log("Shared memory opened: {} ({} MB)", name_, sizeof(SharedFrame) / (1024 * 1024));
     return true;
 }
 

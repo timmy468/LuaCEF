@@ -1,6 +1,10 @@
 #include <Windows.h>
 
+#include <filesystem>
+
 #include "Host.hpp"
+
+#include "Logger.hpp"
 
 void CreateDebugConsole()
 {
@@ -21,6 +25,8 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
     // todo
     CreateDebugConsole();
+
+    Logger::Instance().SetLogFilePath(std::filesystem::current_path() / "luacef" / "host.log");
 
     Host host;
 

@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <iostream>
 
+#include "Logger.hpp"
+
 ProcessManager::ProcessManager() = default;
 
 ProcessManager::~ProcessManager()
@@ -13,18 +15,18 @@ bool ProcessManager::Start()
 {
     if (IsRunning())
     {
-        std::cout << "Subprocess already running (PID: " << process_id_ << ")" << std::endl;
+        Logger::Instance().Log("Subprocess already running (PID: {})", process_id_);
         return true;
     }
 
     subprocess_path_ = GetSubprocessPath();
     if (subprocess_path_.empty())
     {
-        std::cerr << "Failed to find subprocess executable" << std::endl;
+        Logger::Instance().Log("Failed to find subprocess executable");
         return false;
     }
 
-    std::cout << "Starting subprocess: " << subprocess_path_ << std::endl;
+    Logger::Instance().Log("Subprocess path: {}", subprocess_path_);
 
     // Создать процесс
     STARTUPINFOA startup_info{};
@@ -45,7 +47,7 @@ bool ProcessManager::Start()
                         nullptr, // Current directory
                         &startup_info, &process_info))
     {
-        std::cerr << "Failed to create subprocess process: " << GetLastError() << std::endl;
+        Logger::Instance().Log("Failed to create subprocess process: {}", GetLastError());
         return false;
     }
 
@@ -54,7 +56,7 @@ bool ProcessManager::Start()
 
     CloseHandle(process_info.hThread); // Закрыть handle главного потока
 
-    std::cout << "Subprocess started (PID: " << process_id_ << ")" << std::endl;
+    Logger::Instance().Log("Subprocess created (PID: {})", process_id_);
 
     // Запустить поток для мониторинга
     monitor_running_ = true;
@@ -68,7 +70,7 @@ void ProcessManager::Stop()
     if (!IsRunning())
         return;
 
-    std::cout << "Stopping subprocess..." << std::endl;
+    Logger::Instance().Log("Stopping subprocess (PID: {})", process_id_);
 
     monitor_running_ = false;
 
@@ -91,7 +93,7 @@ void ProcessManager::Stop()
         monitor_thread_.join();
     }
 
-    std::cout << "Subprocess stopped" << std::endl;
+    Logger::Instance().Log("Subprocess stopped (PID: {})", process_id_);
 }
 
 bool ProcessManager::IsRunning() const
@@ -117,7 +119,7 @@ std::string ProcessManager::GetSubprocessPath()
     {
         if (std::filesystem::exists(path))
         {
-            std::cout << "Found subprocess at: " << path << std::endl;
+            Logger::Instance().Log("Found subprocess at: {}", path);
             return std::filesystem::absolute(path).string();
         }
     }
@@ -131,7 +133,7 @@ void ProcessManager::MonitorThreadProc()
     {
         if (!IsRunning())
         {
-            std::cerr << "Subprocess crashed or terminated unexpectedly" << std::endl;
+            Logger::Instance().Log("Subprocess crashed or terminated unexpectedly");
             process_handle_ = nullptr;
             process_id_ = 0;
             break;

@@ -27,6 +27,7 @@ link_libraries(
 set(LUACEF_DEPLOY_DIR "${CMAKE_BINARY_DIR}/deploy")
 set(LUACEF_CEF_DIR "${LUACEF_DEPLOY_DIR}/luacef")
 
+add_subdirectory(common)
 add_subdirectory(ipc)
 add_subdirectory(host)
 add_subdirectory(plugin)

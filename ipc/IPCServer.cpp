@@ -3,6 +3,8 @@
 #include <array>
 #include <iostream>
 
+#include "Logger.hpp"
+
 namespace ipc
 {
 
@@ -17,7 +19,7 @@ IPCServer::~IPCServer()
 
 bool IPCServer::Start(const std::string& pipe_name, int max_clients)
 {
-    std::println(std::cout, "IPCServer::Start");
+    Logger::Instance().Log("IPCServer::Start");
 
     pipe_name_ = pipe_name;
     is_running_ = true;
@@ -33,12 +35,12 @@ bool IPCServer::Start(const std::string& pipe_name, int max_clients)
 
         if (pipe == INVALID_HANDLE_VALUE)
         {
-            std::cerr << "Failed to create named pipe: " << GetLastError() << std::endl;
+            Logger::Instance().Log("Failed to create named pipe: {}", GetLastError());
             is_running_ = false;
             return false;
         }
 
-        std::cout << "IPC Server listening on " << pipe_name_ << std::endl;
+        Logger::Instance().Log("IPC Server listening on {}", pipe_name_);
 
         // Ждать подключения клиента
         if (!ConnectNamedPipe(pipe, nullptr))
@@ -46,20 +48,20 @@ bool IPCServer::Start(const std::string& pipe_name, int max_clients)
             DWORD error = GetLastError();
             if (error != ERROR_PIPE_CONNECTED)
             {
-                std::cerr << "Failed to connect named pipe: " << error << std::endl;
+                Logger::Instance().Log("Failed to connect named pipe: {}", error);
                 CloseHandle(pipe);
                 is_running_ = false;
                 return false;
             }
         }
 
-        std::cout << "Client connected" << std::endl;
+        Logger::Instance().Log("Client connected");
 
         // Создать поток для обработки клиента
         client_threads_.emplace_back([this](HANDLE pipe_handle) { ClientThreadProc(pipe_handle); }, pipe);
     }
 
-    std::println(std::cout, "IPCServer::Stop");
+    Logger::Instance().Log("IPCServer::Stop");
 
     return true;
 }
@@ -108,7 +110,7 @@ void IPCServer::ClientThreadProc(HANDLE pipe_handle)
 
         if (header.payloadSize > MAX_PAYLOAD_SIZE)
         {
-            std::cerr << "Payload too large" << std::endl;
+            Logger::Instance().Log("Payload too large");
 
             break;
         }
@@ -138,7 +140,7 @@ void IPCServer::ClientThreadProc(HANDLE pipe_handle)
 
     CloseHandle(pipe_handle);
 
-    std::cout << "Client disconnected" << std::endl;
+    Logger::Instance().Log("Client disconnected");
 }
 
 bool IPCServer::HasData(HANDLE pipe_handle)
