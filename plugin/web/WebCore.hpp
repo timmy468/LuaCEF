@@ -12,6 +12,8 @@
 
 #include "RemoteWebView.hpp"
 
+#include "render/IRenderManager.hpp"
+
 class WebCore
 {
   public:
@@ -37,7 +39,7 @@ class WebCore
 
     void ExecuteJS(RemoteWebView* view, const std::string& code);
 
-    void Update();
+    void Update(std::shared_ptr<IRenderManager> renderManager);
 
     bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     void OnDeviceLost();
@@ -73,7 +75,7 @@ class WebCore
     void ProcessInput();
 
     void UpdateTextures();
-    void Render();
+    void Render(std::shared_ptr<IRenderManager> renderManager);
 
     void ProcessGameThreadTasks();
     void AddTaskToGameThread(std::function<void()> task);

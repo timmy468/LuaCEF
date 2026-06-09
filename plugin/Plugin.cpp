@@ -6,6 +6,7 @@
 #include <plugin.h>
 
 #include "Logger.hpp"
+#include "render/RenderManager.hpp"
 
 using WndProc_t = LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM);
 
@@ -16,15 +17,17 @@ void Plugin::OnAttach(void* handle)
     Logger::Instance().Log("Plugin attached with handle: {}", handle);
 
     webCore_ = std::make_shared<WebCore>();
+    renderManager_ = std::make_shared<RenderManager>();
 
     plugin::Events::initRwEvent += [this]() { OnRenderInit(); };
 }
 
 void Plugin::OnDetach()
 {
-    Logger::Instance().Log("Plugin detached.");
-
     webCore_->Shutdown();
+    renderManager_->Shutdown();
+
+    Logger::Instance().Log("Plugin detached.");
 }
 
 void Plugin::InstallGameHooks()
@@ -36,9 +39,6 @@ void Plugin::InstallGameHooks()
                                                             return hook.call_trampoline(
                                                                 std::forward<decltype(args)>(args)...);
                                                         });
-
-    const auto d3d9_device_vtable = *(void***)(GetD3DDevice());
-    static kthook::kthook_naked presentHook(d3d9_device_vtable[17], [this](const auto& hook) { OnDrawingEvent(); });
 }
 
 bool Plugin::IsInitialized() const
@@ -89,9 +89,13 @@ void Plugin::Close(RemoteWebView* view)
 
 void Plugin::OnRenderInit()
 {
-    Logger::Instance().Log("Initializing render...");
+    Logger::Instance().Log("Initializing WebCore...");
     webCore_->Initialize(GetD3DDevice());
-    Logger::Instance().Log("Render initialized.");
+    Logger::Instance().Log("WebCore initialized.");
+
+    Logger::Instance().Log("Initializing RenderManager...");
+    renderManager_->Initialize();
+    Logger::Instance().Log("RenderManager initialized.");
 
     Logger::Instance().Log("Installing game hooks...");
     InstallGameHooks();
@@ -112,9 +116,9 @@ void Plugin::OnD3DReset()
     webCore_->OnDeviceReset();
 }
 
-void Plugin::OnDrawingEvent()
+void Plugin::Update()
 {
-    webCore_->Update();
+    webCore_->Update(renderManager_);
 }
 
 void Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

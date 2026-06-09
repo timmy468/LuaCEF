@@ -50,7 +50,7 @@ extern "C"
         if (!Plugin::GetInstance().IsInitialized())
             return;
 
-        Plugin::GetInstance().GetWebCore()->Update();
+        Plugin::GetInstance().Update();
     }
 
     API_EXPORT void LuaCEF_OnD3DLost()

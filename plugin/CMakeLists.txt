@@ -3,6 +3,7 @@ add_library(LuaCEFPlugin SHARED)
 
 target_sources(LuaCEFPlugin PRIVATE
     process/ProcessManager.cpp
+    render/RenderManager.cpp
     utils/samp_utils.cpp
     web/WebCore.cpp
     web/RemoteWebView.cpp

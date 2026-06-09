@@ -4,12 +4,14 @@
 
 #include <plugintmplt/plugintmplt.hpp>
 
+#include "render/IRenderManager.hpp"
 #include "web/WebCore.hpp"
 
 class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
 {
   private:
     std::shared_ptr<WebCore> webCore_;
+    std::shared_ptr<IRenderManager> renderManager_;
 
   public:
     void OnAttach(void* handle);
@@ -26,12 +28,13 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
         return webCore_;
     }
 
+    void Update();
+
   private:
     void InstallGameHooks();
 
     void OnRenderInit();
     void OnD3DLost();
     void OnD3DReset();
-    void OnDrawingEvent();
     void OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };

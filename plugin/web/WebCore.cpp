@@ -259,17 +259,17 @@ bool WebCore::IsAnyInputActive() const
     return false;
 }
 
-void WebCore::Update()
+void WebCore::Update(std::shared_ptr<IRenderManager> renderManager)
 {
     ProcessGameThreadTasks();
 
     ProcessInput();
 
     UpdateTextures();
-    Render();
+    Render(renderManager);
 }
 
-void WebCore::Render()
+void WebCore::Render(std::shared_ptr<IRenderManager> renderManager)
 {
     // TODO: fix SF & white screen
     for (auto& view : webViews_)
@@ -285,27 +285,8 @@ void WebCore::Render()
             Logger::Instance().Log("Rendering texture {} {} {} {}", view->GetX(), view->GetY(), view->GetWidth(),
                                    view->GetHeight());
 
-            static RwRaster* raster{};
-            if (!raster)
-            {
-                raster = RwRasterCreate(view->GetWidth(), view->GetHeight(), 0, rwRASTERTYPETEXTURE);
-            }
-
-            // RasterExtOffset
-            {
-                auto offset = *reinterpret_cast<IDirect3DTexture9***>(0xB4E9E0);
-                auto& rasterTexture = *reinterpret_cast<IDirect3DTexture9**>((uintptr_t)raster + (uintptr_t)offset);
-                rasterTexture = texture;
-            }
-
-            RwRenderStateSet(rwRENDERSTATETEXTURERASTER, raster);
-
-            CRect rect;
-            rect.left = view->GetX();
-            rect.top = view->GetY();
-            rect.right = view->GetX() + view->GetWidth();
-            rect.bottom = view->GetY() + view->GetHeight();
-            CSprite2d::DrawTxRect(rect, {255, 255, 255, 255});
+            renderManager->RenderTexture(view->GetTexture(), view->GetX(), view->GetY(), view->GetWidth(),
+                                         view->GetHeight());
         }
     }
 }
@@ -319,6 +300,8 @@ void WebCore::UpdateTextures()
 
 bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    bool retval = false;
+
     if (msg == WM_CHAR)
     {
         wchar_t wch;
@@ -350,7 +333,8 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     }
                 });
 
-            return true;
+            retval = true;
+            continue;
         }
         else if (msg >= WM_LBUTTONDOWN && msg <= WM_MBUTTONUP)
         {
@@ -389,7 +373,8 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 cmd.button = 2;
                 break;
             default:
-                return false;
+                retval = false;
+                continue;
             }
 
             AddTaskToMessageThread(
@@ -400,7 +385,8 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         Logger::Instance().Log("Failed to send MouseClick command");
                     }
                 });
-            return true;
+            retval = true;
+            continue;
         }
         else if (msg == WM_MOUSEWHEEL)
         {
@@ -421,7 +407,8 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         Logger::Instance().Log("Failed to send MouseWheel command");
                     }
                 });
-            return true;
+            retval = true;
+            continue;
         }
 
         if (msg >= WM_KEYDOWN && msg <= WM_CHAR)
@@ -464,10 +451,11 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     }
                 });
 
-            return true;
+            retval = true;
+            continue;
         }
     }
-    return false;
+    return retval;
 }
 
 void WebCore::OnDeviceLost()
