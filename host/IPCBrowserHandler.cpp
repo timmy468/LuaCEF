@@ -52,14 +52,17 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         browser->AddOnCloseCallback(
             [this, pipe](BrowserView* browser)
             {
+                UnregisterBrowser(browser->GetWebviewId());
+
                 if (!ipcServer_)
                     return;
 
+                const auto id = browser->GetWebviewId();
                 ipcServer_->AddTaskToMessageThread(
-                    [this, pipe, browser]()
+                    [this, pipe, id]()
                     {
                         ipc::CloseWebViewResponse cmd{};
-                        cmd.id = browser->GetWebviewId();
+                        cmd.id = id;
 
                         Logger::Instance().Log("Sending CloseWebViewResponse command");
                         if (!ipc::IPCServer::Send(pipe, ipc::CommandType::CloseWebViewResponse, cmd))
@@ -198,8 +201,6 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
                 CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<CefBrowser> browser)
                                                    { browser->GetHost()->CloseBrowser(true); }, browser));
             }
-
-            UnregisterBrowser(cmd->id);
         }
 
         break;

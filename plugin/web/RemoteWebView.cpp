@@ -20,11 +20,17 @@ RemoteWebView::RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserI
 
 RemoteWebView::~RemoteWebView()
 {
+    sharedMemory_.Close();
+    frame_ = nullptr;
+
     DeleteTexture();
 }
 
 void RemoteWebView::AttachBrowser()
 {
+    if (closing_)
+        return;
+
     if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}", static_cast<uint32_t>(browserId_))))
     {
         frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
@@ -38,12 +44,18 @@ void RemoteWebView::AttachBrowser()
 
 void RemoteWebView::OnAfterCreate()
 {
+    if (closing_)
+        return;
+
     for (auto& callback : onAfterCreateCallbacks_)
         callback(this);
 }
 
 void RemoteWebView::OnLoading(int httpStatusCode)
 {
+    if (closing_)
+        return;
+
     for (auto& callback : onLoadingCallbacks_)
         callback(this, httpStatusCode);
 }
@@ -61,6 +73,9 @@ void RemoteWebView::OnURLChanged(const std::string& url)
 
 void RemoteWebView::OnBindFunctionCall(const std::string& function, const std::string& args)
 {
+    if (closing_)
+        return;
+
     Logger::Instance().Log("RemoteWebView::OnBindFunctionCall() {} {}", function, args);
 
     auto it = bindFunctions_.find(function);
@@ -72,6 +87,8 @@ void RemoteWebView::OnBindFunctionCall(const std::string& function, const std::s
 
 void RemoteWebView::Close()
 {
+    closing_ = true;
+
     SetInputEnabled(false);
     SetOffscreenRenderingEnabled(false);
     SetRenderEnabled(false);
@@ -94,6 +111,9 @@ void RemoteWebView::OnDeviceReset()
 
 void RemoteWebView::Update()
 {
+    if (closing_)
+        return;
+
     if (!frame_)
         return;
 
@@ -107,6 +127,9 @@ void RemoteWebView::Update()
 
 void RemoteWebView::UploadTexture()
 {
+    if (closing_)
+        return;
+
     D3DLOCKED_RECT rect{};
 
     if (FAILED(texture_->LockRect(0, &rect, nullptr, D3DLOCK_DISCARD)))
@@ -136,6 +159,9 @@ bool RemoteWebView::InputEnabled() const
 
 void RemoteWebView::SetInputEnabled(bool enabled)
 {
+    if (closing_)
+        return;
+
     inputEnabled_ = enabled;
     if (!inputEnabled_)
         samp_utils::ToggleCursor(false);

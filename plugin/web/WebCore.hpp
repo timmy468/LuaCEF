@@ -55,6 +55,8 @@ class WebCore
     std::atomic_uint32_t nextBrowserId_{1};
 
     bool messageThreadRunning_{false};
+    std::thread messageThread_;
+
     struct
     {
         std::mutex mutex;

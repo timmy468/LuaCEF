@@ -52,10 +52,26 @@ WebCore::~WebCore()
 
 void WebCore::Shutdown()
 {
+    messageThreadRunning_ = false;
+    if (messageThread_.joinable())
+    {
+        messageThread_.join();
+    }
+
+    for (auto* view : webViews_)
+    {
+        delete view;
+    }
+
+    webViews_.clear();
+    webviewIdMap_.clear();
+
+    ipcClient_.reset();
+
     if (processManager_)
     {
         processManager_->Stop();
-        processManager_ = nullptr;
+        processManager_.reset();
     }
 }
 
@@ -101,6 +117,9 @@ void WebCore::Close(RemoteWebView* view)
     auto it = std::find(webViews_.begin(), webViews_.end(), view);
     if (it != webViews_.end())
     {
+        if (view->IsClosing())
+            return;
+
         view->Close();
 
         ipc::CloseWebViewCmd cmd{};
@@ -116,10 +135,6 @@ void WebCore::Close(RemoteWebView* view)
                 }
                 Logger::Instance().Log("CloseWebView command sent");
             });
-
-        // todo: handle this
-        // delete *it;
-        // webViews_.erase(it);
     }
 }
 
@@ -313,6 +328,9 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     for (auto& [id, webView] : webviewIdMap_)
     {
+        if (webView->IsClosing())
+            continue;
+
         if (msg == WM_MOUSEMOVE)
         {
             POINT point = {LOWORD(lParam), HIWORD(lParam)};
@@ -467,8 +485,7 @@ void WebCore::OnDeviceReset()
 void WebCore::StartMessageReceiveThread()
 {
     messageThreadRunning_ = true;
-    std::thread t([this]() { MessageReceiveThreadProc(); });
-    t.detach();
+    messageThread_ = std::thread([this]() { MessageReceiveThreadProc(); });
 }
 
 void WebCore::MessageReceiveThreadProc()
@@ -518,7 +535,15 @@ void WebCore::MessageReceiveThreadProc()
 
             Logger::Instance().Log("Attaching browser with id {}", browserId);
 
-            AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->AttachBrowser(); });
+            AddTaskToGameThread(
+                [this, browserId]()
+                {
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
+                    {
+                        it->second->AttachBrowser();
+                    }
+                });
 
             break;
         }
@@ -546,8 +571,20 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId]()
                 {
-                    // todo: handle this
-                    webviewIdMap_[browserId]->OnClose();
+                    auto it = webviewIdMap_.find(browserId);
+
+                    if (it != webviewIdMap_.end())
+                    {
+                        auto* view = it->second;
+
+                        view->OnClose();
+
+                        webViews_.erase(std::remove(webViews_.begin(), webViews_.end(), view), webViews_.end());
+
+                        webviewIdMap_.erase(it);
+
+                        delete view;
+                    }
                 });
 
             break;
@@ -573,8 +610,15 @@ void WebCore::MessageReceiveThreadProc()
 
             Logger::Instance().Log("Loading browser with id {}", browserId);
 
-            AddTaskToGameThread([this, browserId, response]()
-                                { webviewIdMap_[browserId]->OnLoading(response.httpStatusCode); });
+            AddTaskToGameThread(
+                [this, browserId, response]()
+                {
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
+                    {
+                        it->second->OnLoading(response.httpStatusCode);
+                    }
+                });
 
             break;
         }
@@ -599,7 +643,15 @@ void WebCore::MessageReceiveThreadProc()
 
             Logger::Instance().Log("AfterCreateResponse browser with id {}", browserId);
 
-            AddTaskToGameThread([this, browserId]() { webviewIdMap_[browserId]->OnAfterCreate(); });
+            AddTaskToGameThread(
+                [this, browserId]()
+                {
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
+                    {
+                        it->second->OnAfterCreate();
+                    }
+                });
 
             break;
         }
@@ -625,7 +677,15 @@ void WebCore::MessageReceiveThreadProc()
 
             Logger::Instance().Log("URLChangedResponse browser with id {}", browserId);
 
-            AddTaskToGameThread([this, browserId, url]() { webviewIdMap_[browserId]->OnURLChanged(url); });
+            AddTaskToGameThread(
+                [this, browserId, url]()
+                {
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
+                    {
+                        it->second->OnURLChanged(url);
+                    }
+                });
 
             break;
         }
@@ -652,8 +712,15 @@ void WebCore::MessageReceiveThreadProc()
 
             Logger::Instance().Log("BindFunctionResponse browser with id {}", browserId);
 
-            AddTaskToGameThread([this, browserId, function, args]()
-                                { webviewIdMap_[browserId]->OnBindFunctionCall(function, args); });
+            AddTaskToGameThread(
+                [this, browserId, function, args]()
+                {
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
+                    {
+                        it->second->OnBindFunctionCall(function, args);
+                    }
+                });
 
             break;
         }

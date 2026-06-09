@@ -83,7 +83,7 @@ void Plugin::Close(RemoteWebView* view)
     if (!IsInitialized())
         return;
 
-    Logger::Instance().Log("Closing web view.");
+    Logger::Instance().Log("Closing web view with id {}", view->GetBrowserId());
     webCore_->Close(view);
 }
 

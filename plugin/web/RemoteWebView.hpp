@@ -132,6 +132,16 @@ class RemoteWebView
         return url_;
     }
 
+    bool IsClosing() const
+    {
+        return closing_;
+    }
+
+    void MarkAsClosing()
+    {
+        closing_ = true;
+    }
+
   private:
     BrowserId browserId_;
 
@@ -162,6 +172,8 @@ class RemoteWebView
     uint32_t lastSequence_{};
 
     std::shared_ptr<ipc::IPCClient> ipcClient_;
+
+    bool closing_{};
 
   private:
     void CreateTexture(uint32_t width, uint32_t height);
