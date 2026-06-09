@@ -52,6 +52,12 @@ class BrowserView : public CefClient,
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
 
     // CefLifeSpanHandler
+    bool OnBeforePopup(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, const CefString&, const CefString&,
+                       WindowOpenDisposition, bool, const CefPopupFeatures&, CefWindowInfo&, CefRefPtr<CefClient>&,
+                       CefBrowserSettings&, CefRefPtr<CefDictionaryValue>&, bool*) override
+    {
+        return true; // блокируем popup
+    }
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
     void OnBeforeClose(CefRefPtr<CefBrowser> browser) override;
 

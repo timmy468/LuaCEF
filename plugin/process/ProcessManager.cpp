@@ -1,6 +1,9 @@
 #include "ProcessManager.hpp"
+
 #include <filesystem>
 #include <iostream>
+
+#include <TlHelp32.h>
 
 #include "Logger.hpp"
 
@@ -11,55 +14,86 @@ ProcessManager::~ProcessManager()
     Stop();
 }
 
+void ProcessManager::KillOldHosts()
+{
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+
+    if (snapshot == INVALID_HANDLE_VALUE)
+        return;
+
+    PROCESSENTRY32 entry{};
+    entry.dwSize = sizeof(entry);
+
+    if (Process32First(snapshot, &entry))
+    {
+        do
+        {
+            if (_stricmp(entry.szExeFile, "cef-host.exe") == 0)
+            {
+                HANDLE process = OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION, FALSE, entry.th32ProcessID);
+
+                if (process)
+                {
+                    Logger::Instance().Log("Killing old cef-host.exe (PID: {})", entry.th32ProcessID);
+
+                    TerminateProcess(process, 0);
+                    WaitForSingleObject(process, 3000);
+
+                    CloseHandle(process);
+                }
+            }
+        } while (Process32Next(snapshot, &entry));
+    }
+
+    CloseHandle(snapshot);
+}
+
 bool ProcessManager::Start()
 {
     if (IsRunning())
     {
         Logger::Instance().Log("Subprocess already running (PID: {})", process_id_);
+
         return true;
     }
 
+    KillOldHosts();
+
     subprocess_path_ = GetSubprocessPath();
+
     if (subprocess_path_.empty())
     {
         Logger::Instance().Log("Failed to find subprocess executable");
+
         return false;
     }
 
     Logger::Instance().Log("Subprocess path: {}", subprocess_path_);
 
-    // Создать процесс
     STARTUPINFOA startup_info{};
-    startup_info.cb = sizeof(STARTUPINFOA);
-    // todo: fix
+    startup_info.cb = sizeof(startup_info);
     // startup_info.dwFlags = STARTF_USESHOWWINDOW;
-    startup_info.wShowWindow = SW_HIDE; // Скрыть окно subprocess
+    startup_info.wShowWindow = SW_HIDE;
 
     PROCESS_INFORMATION process_info{};
 
-    if (!CreateProcessA(subprocess_path_.c_str(),
-                        nullptr, // Command line
-                        nullptr, // Process attributes
-                        nullptr, // Thread attributes
-                        FALSE,   // Inherit handles
-                        CREATE_NEW_CONSOLE,
-                        nullptr, // Environment
-                        nullptr, // Current directory
+    if (!CreateProcessA(subprocess_path_.c_str(), nullptr, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
                         &startup_info, &process_info))
     {
-        Logger::Instance().Log("Failed to create subprocess process: {}", GetLastError());
+        Logger::Instance().Log("CreateProcess failed: {}", GetLastError());
+
         return false;
     }
 
     process_handle_ = process_info.hProcess;
     process_id_ = process_info.dwProcessId;
 
-    CloseHandle(process_info.hThread); // Закрыть handle главного потока
+    CloseHandle(process_info.hThread);
 
     Logger::Instance().Log("Subprocess created (PID: {})", process_id_);
 
-    // Запустить поток для мониторинга
     monitor_running_ = true;
+
     monitor_thread_ = std::thread([this]() { MonitorThreadProc(); });
 
     return true;
@@ -67,33 +101,42 @@ bool ProcessManager::Start()
 
 void ProcessManager::Stop()
 {
-    if (!IsRunning())
-        return;
-
-    Logger::Instance().Log("Stopping subprocess (PID: {})", process_id_);
-
     monitor_running_ = false;
-
-    if (process_handle_ != nullptr)
-    {
-        // Попробовать завершить процесс gracefully
-        TerminateProcess(process_handle_, 0);
-
-        // Ждать завершения
-        WaitForSingleObject(process_handle_, 5000);
-
-        CloseHandle(process_handle_);
-        process_handle_ = nullptr;
-    }
-
-    process_id_ = 0;
 
     if (monitor_thread_.joinable())
     {
         monitor_thread_.join();
     }
 
-    Logger::Instance().Log("Subprocess stopped (PID: {})", process_id_);
+    if (!process_handle_)
+        return;
+
+    Logger::Instance().Log("Stopping subprocess (PID: {})", process_id_);
+
+    DWORD exit_code{};
+
+    if (GetExitCodeProcess(process_handle_, &exit_code) && exit_code == STILL_ACTIVE)
+    {
+        WaitForSingleObject(process_handle_, 1000);
+
+        GetExitCodeProcess(process_handle_, &exit_code);
+
+        if (exit_code == STILL_ACTIVE)
+        {
+            Logger::Instance().Log("Force terminating subprocess");
+
+            TerminateProcess(process_handle_, 0);
+
+            WaitForSingleObject(process_handle_, 5000);
+        }
+    }
+
+    CloseHandle(process_handle_);
+
+    process_handle_ = nullptr;
+    process_id_ = 0;
+
+    Logger::Instance().Log("Subprocess stopped");
 }
 
 bool ProcessManager::IsRunning() const
@@ -131,14 +174,27 @@ void ProcessManager::MonitorThreadProc()
 {
     while (monitor_running_)
     {
-        if (!IsRunning())
+        HANDLE process = process_handle_;
+
+        if (!process)
+            break;
+
+        DWORD exit_code{};
+
+        if (!GetExitCodeProcess(process, &exit_code))
         {
-            Logger::Instance().Log("Subprocess crashed or terminated unexpectedly");
-            process_handle_ = nullptr;
-            process_id_ = 0;
+            Logger::Instance().Log("GetExitCodeProcess failed");
+
             break;
         }
 
-        Sleep(500); // Проверять каждые 500ms
+        if (exit_code != STILL_ACTIVE)
+        {
+            Logger::Instance().Log("Subprocess exited with code {}", exit_code);
+
+            break;
+        }
+
+        Sleep(500);
     }
 }

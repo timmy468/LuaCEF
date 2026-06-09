@@ -33,6 +33,8 @@ class ProcessManager
         return process_handle_;
     }
 
+    void KillOldHosts();
+
   private:
     HANDLE process_handle_{nullptr};
     DWORD process_id_{0};
