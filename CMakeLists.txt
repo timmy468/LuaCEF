@@ -48,3 +48,24 @@ foreach(CONFIG Debug Release RelWithDebInfo MinSizeRel)
         RUNTIME_OUTPUT_DIRECTORY "${LUACEF_DEPLOY_DIR}/$<CONFIG>/luacef"
     )
 endforeach()
+
+add_custom_target(DEPLOY ALL)
+
+add_dependencies(
+    DEPLOY
+    LuaCEFPlugin
+    LuaCEFHost
+    LuaCEFSubprocess
+)
+
+add_custom_command(TARGET DEPLOY POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CEF_ROOT}/Release"
+            "$<TARGET_FILE_DIR:LuaCEFHost>"
+
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CEF_ROOT}/Resources"
+            "$<TARGET_FILE_DIR:LuaCEFHost>"
+
+    COMMENT "Copying CEF runtime files"
+)
