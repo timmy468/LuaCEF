@@ -130,6 +130,8 @@ void RemoteWebView::UploadTexture()
     if (closing_)
         return;
 
+    Logger::Instance().Log("UploadTexture: {} {}", frame_->header.width, frame_->header.height);
+
     D3DLOCKED_RECT rect{};
 
     if (FAILED(texture_->LockRect(0, &rect, nullptr, D3DLOCK_DISCARD)))
@@ -159,9 +161,6 @@ bool RemoteWebView::InputEnabled() const
 
 void RemoteWebView::SetInputEnabled(bool enabled)
 {
-    if (closing_)
-        return;
-
     inputEnabled_ = enabled;
     if (!inputEnabled_)
         samp_utils::ToggleCursor(false);

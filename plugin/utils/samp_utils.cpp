@@ -65,4 +65,17 @@ void ToggleCursor(bool show)
         }
     }
 }
+
+uintptr_t GetWndProcHookAddress()
+{
+    switch (GetVersion())
+    {
+    case SampVersion::v037r1:
+        return GetSampHandle() + 0x5DB40;
+    case SampVersion::v037r3:
+        return GetSampHandle() + 0x60EE0;
+    }
+
+    return 0;
+}
 } // namespace samp_utils

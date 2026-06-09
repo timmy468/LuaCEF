@@ -65,6 +65,16 @@ class RemoteWebView
     bool InputEnabled() const;
     void SetInputEnabled(bool enabled);
 
+    void SetFocused(bool focused)
+    {
+        focused_ = focused;
+    }
+
+    bool IsFocused() const
+    {
+        return focused_;
+    }
+
     bool OffscreenRenderingEnabled() const
     {
         return offscreenRenderingEnabled_;
@@ -174,6 +184,7 @@ class RemoteWebView
     std::shared_ptr<ipc::IPCClient> ipcClient_;
 
     bool closing_{};
+    bool focused_{};
 
   private:
     void CreateTexture(uint32_t width, uint32_t height);

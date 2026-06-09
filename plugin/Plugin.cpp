@@ -8,6 +8,8 @@
 #include "Logger.hpp"
 #include "render/RenderManager.hpp"
 
+#include "utils/samp_utils.hpp"
+
 using WndProc_t = LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM);
 
 void Plugin::OnAttach(void* handle)
@@ -32,10 +34,12 @@ void Plugin::OnDetach()
 
 void Plugin::InstallGameHooks()
 {
-    static kthook::kthook_simple<WndProc_t> wndProcHook(0x747EB0,
-                                                        [this](auto& hook, auto&&... args)
+    static kthook::kthook_simple<WndProc_t> wndProcHook(samp_utils::GetWndProcHookAddress(),
+                                                        [this](auto& hook, auto&&... args) -> LRESULT
                                                         {
-                                                            OnWndProc(std::forward<decltype(args)>(args)...);
+                                                            if (OnWndProc(std::forward<decltype(args)>(args)...))
+                                                                return 1;
+
                                                             return hook.call_trampoline(
                                                                 std::forward<decltype(args)>(args)...);
                                                         });
@@ -121,7 +125,7 @@ void Plugin::Update()
     webCore_->Update(renderManager_);
 }
 
-void Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+bool Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    webCore_->OnWndProc(hwnd, msg, wParam, lParam);
+    return webCore_->OnWndProc(hwnd, msg, wParam, lParam);
 }

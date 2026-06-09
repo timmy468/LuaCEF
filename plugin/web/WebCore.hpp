@@ -71,6 +71,8 @@ class WebCore
         std::vector<std::function<void()>> tasks;
     } messageThreadTasks_;
 
+    bool focused_ = false;
+
   private:
     void ProcessInput();
 

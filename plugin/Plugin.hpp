@@ -34,7 +34,8 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
     void InstallGameHooks();
 
     void OnRenderInit();
+    void OnGameInit();
     void OnD3DLost();
     void OnD3DReset();
-    void OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };

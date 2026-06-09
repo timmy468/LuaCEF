@@ -282,9 +282,6 @@ void WebCore::Render(std::shared_ptr<IRenderManager> renderManager)
 
         if (auto texture = view->GetTexture())
         {
-            Logger::Instance().Log("Rendering texture {} {} {} {}", view->GetX(), view->GetY(), view->GetWidth(),
-                                   view->GetHeight());
-
             renderManager->RenderTexture(view->GetTexture(), view->GetX(), view->GetY(), view->GetWidth(),
                                          view->GetHeight());
         }
@@ -311,7 +308,14 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     if (msg == WM_ACTIVATEAPP)
     {
-        const auto gameActive = wParam == TRUE;
+        const auto gameActive = wParam != 0;
+
+        // fix for games that don't have cursor
+        if (!gameActive)
+        {
+            if (IsAnyInputActive())
+                samp_utils::ToggleCursor(false);
+        }
 
         ipc::PauseCmd cmd{};
         cmd.paused = !gameActive;
@@ -343,13 +347,25 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     }
                 });
 
-            retval = true;
             continue;
         }
         else if (msg >= WM_LBUTTONDOWN && msg <= WM_MBUTTONUP)
         {
             POINT point = {LOWORD(lParam), HIWORD(lParam)};
             ScreenToClient(hwnd, &point);
+
+            {
+                POINT p;
+                GetCursorPos(&p);
+                ScreenToClient(hwnd, &p);
+
+                bool inside = p.x >= webView->GetX() && p.x < webView->GetX() + webView->GetWidth() &&
+                              p.y >= webView->GetY() && p.y < webView->GetY() + webView->GetHeight();
+                webView->SetFocused(inside);
+            }
+
+            if (!webView->IsFocused())
+                continue;
 
             ipc::MouseClickCmd cmd{};
             cmd.id = id;
@@ -400,6 +416,9 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         else if (msg == WM_MOUSEWHEEL)
         {
+            if (!webView->IsFocused())
+                continue;
+
             POINT point = {LOWORD(lParam), HIWORD(lParam)};
             ScreenToClient(hwnd, &point);
 
@@ -423,6 +442,9 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         if (msg >= WM_KEYDOWN && msg <= WM_CHAR)
         {
+            if (!webView->IsFocused())
+                continue;
+
             int keycode = static_cast<int>(wParam);
             int modifiers = 0;
 
@@ -502,14 +524,11 @@ void WebCore::MessageReceiveThreadProc()
 
         ipc::MessageHeader header{};
 
-        Logger::Instance().Log("Waiting header...");
         if (!ipcClient_->ReceiveHeader(header))
         {
             Logger::Instance().Log("Receive failed");
             continue;
         }
-
-        Logger::Instance().Log("Header received");
 
         switch (header.type)
         {

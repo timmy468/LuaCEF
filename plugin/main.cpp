@@ -156,6 +156,28 @@ extern "C"
         view->SetInputEnabled(active);
     }
 
+    API_EXPORT bool LuaCEF_IsFocused(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return false;
+
+        if (!view)
+            return false;
+
+        return view->IsFocused();
+    }
+
+    API_EXPORT void LuaCEF_SetFocused(RemoteWebView* view, bool active)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        view->SetFocused(active);
+    }
+
     API_EXPORT void LuaCEF_SetRenderEnabled(RemoteWebView* view, bool enable)
     {
         if (!Plugin::GetInstance().IsInitialized())
