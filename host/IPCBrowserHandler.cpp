@@ -510,6 +510,35 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         break;
     }
 
+    case ipc::CommandType::Pause:
+    {
+        auto* cmd = static_cast<const ipc::PauseCmd*>(payload);
+
+        Logger::Instance().Log("IPC Pause {}", cmd->paused);
+
+        for (auto& [id, view] : browsers_)
+        {
+            if (auto browser = view->GetBrowser())
+            {
+                CefPostTask(TID_UI, base::BindOnce(
+                                        [](CefRefPtr<CefBrowser> browser, bool paused)
+                                        {
+                                            if (auto host = browser->GetHost())
+                                            {
+                                                host->WasHidden(paused);
+                                                if (!paused)
+                                                    host->Invalidate(PET_VIEW);
+
+                                                Logger::Instance().Log("host->WasHidden(paused)");
+                                            }
+                                        },
+                                        browser, cmd->paused));
+            }
+        }
+
+        break;
+    }
+
     default:
     {
         Logger::Instance().Log("Unknown IPC command {}", static_cast<int>(type));

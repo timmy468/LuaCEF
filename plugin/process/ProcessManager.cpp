@@ -1,6 +1,7 @@
 #include "ProcessManager.hpp"
 
 #include <filesystem>
+#include <format>
 #include <iostream>
 
 #include <TlHelp32.h>
@@ -14,40 +15,6 @@ ProcessManager::~ProcessManager()
     Stop();
 }
 
-void ProcessManager::KillOldHosts()
-{
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-
-    if (snapshot == INVALID_HANDLE_VALUE)
-        return;
-
-    PROCESSENTRY32 entry{};
-    entry.dwSize = sizeof(entry);
-
-    if (Process32First(snapshot, &entry))
-    {
-        do
-        {
-            if (_stricmp(entry.szExeFile, "cef-host.exe") == 0)
-            {
-                HANDLE process = OpenProcess(PROCESS_TERMINATE | PROCESS_QUERY_INFORMATION, FALSE, entry.th32ProcessID);
-
-                if (process)
-                {
-                    Logger::Instance().Log("Killing old cef-host.exe (PID: {})", entry.th32ProcessID);
-
-                    TerminateProcess(process, 0);
-                    WaitForSingleObject(process, 3000);
-
-                    CloseHandle(process);
-                }
-            }
-        } while (Process32Next(snapshot, &entry));
-    }
-
-    CloseHandle(snapshot);
-}
-
 bool ProcessManager::Start()
 {
     if (IsRunning())
@@ -56,8 +23,6 @@ bool ProcessManager::Start()
 
         return true;
     }
-
-    KillOldHosts();
 
     subprocess_path_ = GetSubprocessPath();
 
@@ -77,7 +42,10 @@ bool ProcessManager::Start()
 
     PROCESS_INFORMATION process_info{};
 
-    if (!CreateProcessA(subprocess_path_.c_str(), nullptr, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
+    const auto parentPid = GetCurrentProcessId();
+    std::string cmdLine = std::format("\"{}\" --parent-pid={}", subprocess_path_, parentPid);
+
+    if (!CreateProcessA(nullptr, cmdLine.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr,
                         &startup_info, &process_info))
     {
         Logger::Instance().Log("CreateProcess failed: {}", GetLastError());

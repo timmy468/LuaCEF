@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 
@@ -33,16 +34,15 @@ class ProcessManager
         return process_handle_;
     }
 
-    void KillOldHosts();
-
   private:
-    HANDLE process_handle_{nullptr};
-    DWORD process_id_{0};
+    std::atomic<HANDLE> process_handle_{nullptr};
+    std::atomic<DWORD> process_id_{0};
+
     std::string subprocess_path_;
 
     // Поток для мониторинга процесса
     std::thread monitor_thread_;
-    bool monitor_running_{false};
+    std::atomic_bool monitor_running_{false};
 
     // Получить путь к subprocess
     std::string GetSubprocessPath();

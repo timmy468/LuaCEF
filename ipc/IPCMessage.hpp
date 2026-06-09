@@ -27,8 +27,9 @@ enum class CommandType : uint16_t
     MouseMove,
     MouseClick,
     MouseWheel,
-
     Key,
+
+    Pause,
 
     Ping,
     Pong,
@@ -171,6 +172,11 @@ struct KeyCmd
 
     int32_t modifiers;
     int32_t type;
+};
+
+struct PauseCmd
+{
+    bool paused;
 };
 
 #pragma pack(push, 1)

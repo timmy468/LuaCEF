@@ -309,6 +309,16 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         wParam = wch;
     }
 
+    if (msg == WM_ACTIVATEAPP)
+    {
+        const auto gameActive = wParam == TRUE;
+
+        ipc::PauseCmd cmd{};
+        cmd.paused = !gameActive;
+
+        AddTaskToMessageThread([this, cmd] { ipcClient_->Send(ipc::CommandType::Pause, cmd); });
+    }
+
     for (auto& [id, webView] : webviewIdMap_)
     {
         if (webView->IsClosing())

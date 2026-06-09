@@ -7,6 +7,8 @@
 #include <Windows.h>
 #include <cef_app.h>
 
+#include "Logger.hpp"
+
 bool Host::Initialize()
 {
     InitCef();
@@ -18,6 +20,8 @@ bool Host::Initialize()
     // Запустить сервер в отдельном потоке
     std::thread server_thread([this]() { ipcServer_->Start(R"(\\.\pipe\LuaCEF_IPC)", 8); });
     server_thread.detach(); // Отпустить поток
+
+    StartParentMonitor();
 
     return true;
 }
@@ -56,4 +60,50 @@ void Host::InitCef()
     CefMainArgs args(GetModuleHandle(nullptr));
 
     CefInitialize(args, settings, nullptr, nullptr);
+}
+
+void Host::StartParentMonitor()
+{
+    if (parentPid_ == 0)
+        return;
+
+    parentMonitorThread_ = std::thread([this]() { ParentMonitorProc(); });
+
+    parentMonitorThread_.detach();
+}
+
+void Host::ParentMonitorProc()
+{
+    Logger::Instance().Log("Parent monitor started. PID={}", parentPid_);
+
+    while (running_)
+    {
+        HANDLE process = OpenProcess(SYNCHRONIZE, FALSE, parentPid_);
+
+        if (!process)
+        {
+            Logger::Instance().Log("Parent process not found");
+
+            break;
+        }
+
+        DWORD result = WaitForSingleObject(process, 0);
+
+        CloseHandle(process);
+
+        if (result == WAIT_OBJECT_0)
+        {
+            Logger::Instance().Log("Parent process exited");
+
+            break;
+        }
+
+        Sleep(1000);
+    }
+
+    Logger::Instance().Log("Host shutting down because parent died");
+
+    CefShutdown();
+
+    ExitProcess(0);
 }

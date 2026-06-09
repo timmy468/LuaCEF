@@ -1,6 +1,8 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
+
 
 #include <cef_app.h>
 
@@ -13,10 +15,23 @@ class Host
     bool Initialize();
     void Run();
 
+    void SetParentPid(DWORD pid)
+    {
+        parentPid_ = pid;
+    }
+
   private:
+    DWORD parentPid_{};
+
+    std::thread parentMonitorThread_;
+    std::atomic_bool running_{true};
+
     std::shared_ptr<IPCBrowserHandler> ipcHandler_;
     std::shared_ptr<ipc::IPCServer> ipcServer_;
 
   private:
     void InitCef();
+
+    void StartParentMonitor();
+    void ParentMonitorProc();
 };
