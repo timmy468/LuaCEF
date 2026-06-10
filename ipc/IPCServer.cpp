@@ -92,7 +92,10 @@ void IPCServer::ClientThreadProc(HANDLE pipe_handle)
         ProcessMessageThreadTasks();
 
         if (!HasData(pipe_handle))
+        {
+            Sleep(1);
             continue;
+        }
 
         MessageHeader header{};
 

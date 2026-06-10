@@ -9,6 +9,21 @@
 
 #include "Logger.hpp"
 
+Host::~Host()
+{
+    if (serverThread_.running)
+    {
+        serverThread_.running = false;
+        serverThread_.thread.join();
+    }
+
+    if (parentMonitorThread_.running)
+    {
+        parentMonitorThread_.running = false;
+        parentMonitorThread_.thread.join();
+    }
+}
+
 bool Host::Initialize(DWORD pid)
 {
     parentPid_ = pid;
@@ -19,8 +34,8 @@ bool Host::Initialize(DWORD pid)
     ipcHandler_->SetIPCServer(ipcServer_);
 
     // Запустить сервер в отдельном потоке
-    std::thread server_thread([this]() { ipcServer_->Start(std::format(R"(\\.\pipe\LuaCEF_IPC_{})", parentPid_), 8); });
-    server_thread.detach(); // Отпустить поток
+    serverThread_.thread =
+        std::thread([this]() { ipcServer_->Start(std::format(R"(\\.\pipe\LuaCEF_IPC_{})", parentPid_), 8); });
 
     StartParentMonitor();
 
@@ -68,16 +83,14 @@ void Host::StartParentMonitor()
     if (parentPid_ == 0)
         return;
 
-    parentMonitorThread_ = std::thread([this]() { ParentMonitorProc(); });
-
-    parentMonitorThread_.detach();
+    parentMonitorThread_.thread = std::thread([this]() { ParentMonitorProc(); });
 }
 
 void Host::ParentMonitorProc()
 {
     Logger::Instance().Log("Parent monitor started. PID={}", parentPid_);
 
-    while (running_)
+    while (parentMonitorThread_.running)
     {
         HANDLE process = OpenProcess(SYNCHRONIZE, FALSE, parentPid_);
 

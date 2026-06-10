@@ -48,9 +48,17 @@ class WebCore
   private:
     IDirect3DDevice9* device_{};
 
-    std::vector<RemoteWebView*> webViews_;
+    struct
+    {
+        mutable std::recursive_mutex mutex;
+        std::vector<RemoteWebView*> vector;
+    } webViews_;
 
-    std::map<RemoteWebView::BrowserId, RemoteWebView*> webviewIdMap_; // Маппинг ID из subprocess к локальным объектам
+    struct
+    {
+        mutable std::recursive_mutex mutex;
+        std::map<RemoteWebView::BrowserId, RemoteWebView*> map;
+    } webviewIdMap_;
 
     std::shared_ptr<ipc::IPCClient> ipcClient_;
     std::unique_ptr<ProcessManager> processManager_;

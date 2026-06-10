@@ -13,10 +13,14 @@ struct Vertex
 
 void RenderManager::Initialize()
 {
+    auto* device = GetD3DDevice();
+
+    device->CreateStateBlock(D3DSBT_ALL, &stateBlock_);
 }
 
 void RenderManager::Shutdown()
 {
+    stateBlock_->Release();
 }
 
 void RenderManager::RenderTexture(IDirect3DTexture9* texture, float x, float y, float width, float height)
@@ -25,12 +29,7 @@ void RenderManager::RenderTexture(IDirect3DTexture9* texture, float x, float y, 
     if (!device || !texture)
         return;
 
-    IDirect3DStateBlock9* stateBlock{};
-
-    if (FAILED(device->CreateStateBlock(D3DSBT_ALL, &stateBlock)))
-        return;
-
-    stateBlock->Capture();
+    stateBlock_->Capture();
 
     device->SetPixelShader(nullptr);
     device->SetVertexShader(nullptr);
@@ -77,6 +76,5 @@ void RenderManager::RenderTexture(IDirect3DTexture9* texture, float x, float y, 
     // enb fix
     device->SetRenderState(D3DRS_SCISSORTESTENABLE, false);
 
-    stateBlock->Apply();
-    stateBlock->Release();
+    stateBlock_->Apply();
 }

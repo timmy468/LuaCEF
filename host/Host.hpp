@@ -11,14 +11,26 @@
 class Host
 {
   public:
+    Host() = default;
+    ~Host();
+
     bool Initialize(DWORD pid);
     void Run();
 
   private:
     DWORD parentPid_{};
 
-    std::thread parentMonitorThread_;
-    std::atomic_bool running_{true};
+    struct
+    {
+        std::thread thread;
+        std::atomic_bool running{true};
+    } parentMonitorThread_;
+
+    struct
+    {
+        std::thread thread;
+        std::atomic_bool running{true};
+    } serverThread_;
 
     std::shared_ptr<IPCBrowserHandler> ipcHandler_;
     std::shared_ptr<ipc::IPCServer> ipcServer_;
