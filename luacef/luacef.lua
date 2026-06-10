@@ -36,6 +36,8 @@ ffi.cdef [[
     void LuaCEF_SetInputActive(RemoteWebView view, bool enable);
     bool LuaCEF_IsFocused(RemoteWebView view);
     void LuaCEF_SetFocused(RemoteWebView view, bool enable);
+    void LuaCEF_SetEnabledFocusMode(RemoteWebView view, bool enable);
+    bool LuaCEF_IsEnabledFocusMode(RemoteWebView view);
     void LuaCEF_SetRenderEnabled(RemoteWebView view, bool enable);
     bool LuaCEF_IsRenderEnabled(RemoteWebView view);
     void LuaCEF_SetOffscreenRenderingEnabled(RemoteWebView view, bool enable);
@@ -169,6 +171,18 @@ end
 ---@param enable boolean
 function RemoteWebView:setFocused(enable)
     CEF_LIB.LuaCEF_SetFocused(self._frame, enable)
+end
+
+---Включить режим фокусировки
+---@param enable boolean
+function RemoteWebView:setEnabledFocusMode(enable)
+    CEF_LIB.LuaCEF_SetEnabledFocusMode(self._frame, enable)
+end
+
+---Проверить включен ли режим фокусировки
+---@return boolean
+function RemoteWebView:isEnabledFocusMode()
+    return CEF_LIB.LuaCEF_IsEnabledFocusMode(self._frame)
 end
 
 ---Включить или выключить рендеринг (вне OSR).

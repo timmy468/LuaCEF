@@ -2,6 +2,7 @@
 
 #include "IRenderManager.hpp"
 
+#include <list>
 #include <unordered_map>
 
 #include <RenderWare.h>
@@ -15,6 +16,8 @@ class RenderManager : public IRenderManager
     using TextureMap = std::unordered_map<std::string, RwTexture*>;
     std::unordered_map<CEntity*, TextureMap> entityTexturePool_;
 
+    std::list<std::pair<uintptr_t*, uintptr_t>> storedMaterials_;
+
   public:
     RenderManager() = default;
     ~RenderManager() = default;
@@ -26,15 +29,14 @@ class RenderManager : public IRenderManager
     void AddToEntityTexture(CEntity* entity, const std::string& textureName, IDirect3DTexture9* texture) override;
     void RemoveFromEntityTexture(CEntity* entity, const std::string& textureName) override;
 
+    template <typename Addr> inline void AddStoredMaterial(Addr addr)
+    {
+        storedMaterials_.emplace_back((uintptr_t*)addr, *(uintptr_t*)addr);
+    }
+
   private:
     void InitHooks();
 
     void CEntityRenderBeforeHook(CEntity* entity);
     void CEntityRenderAfterHook(CEntity* entity);
-
-    std::list<std::pair<uintptr_t*, uintptr_t>> storedMaterials_;
-    template <typename Addr> static inline void AddStoredMaterial(Addr addr)
-    {
-        storedMaterials_.emplace_back((uintptr_t*)addr, *(uintptr_t*)addr);
-    }
 };

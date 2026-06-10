@@ -10,9 +10,10 @@
 
 #include "Logger.hpp"
 
-void WebCore::Initialize(IDirect3DDevice9* device)
+void WebCore::Initialize(IDirect3DDevice9* device, std::shared_ptr<IRenderManager> renderManager)
 {
     device_ = device;
+    renderManager_ = renderManager;
 
     processManager_ = std::make_unique<ProcessManager>();
     if (!processManager_->Start())
@@ -92,7 +93,7 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
 
     strcpy_s(cmd.url, sizeof(cmd.url), url.c_str());
 
-    auto* webView = new RemoteWebView(ipcClient_, cmd.id, device_, x, y, w, h, onCreate);
+    auto* webView = new RemoteWebView(ipcClient_, renderManager_, cmd.id, device_, x, y, w, h, onCreate);
     webViews_.push_back(webView);
 
     webviewIdMap_[cmd.id] = webView;
@@ -262,34 +263,20 @@ bool WebCore::IsAnyInputActive() const
     return false;
 }
 
-void WebCore::Update(std::shared_ptr<IRenderManager> renderManager)
+void WebCore::Update()
 {
     ProcessGameThreadTasks();
 
     ProcessInput();
 
     UpdateTextures();
-    Render(renderManager);
+    Render();
 }
 
-void WebCore::Render(std::shared_ptr<IRenderManager> renderManager)
+void WebCore::Render()
 {
     for (auto& view : webViews_)
-    {
-        if (!view->HasFrame())
-            continue;
-
-        if (view->OffscreenRenderingEnabled() || !view->RenderEnabled())
-            continue;
-
-        // if (!view->IsLoaded())
-        //     continue;
-
-        if (auto texture = view->GetTexture())
-        {
-            renderManager->RenderTexture(texture, view->GetX(), view->GetY(), view->GetWidth(), view->GetHeight());
-        }
-    }
+        view->Render();
 }
 
 void WebCore::UpdateTextures()
@@ -371,7 +358,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 webView->SetFocused(inside);
             }
 
-            if (!webView->IsFocused())
+            if (webView->IsEnabledFocusMode() && !webView->IsFocused())
                 continue;
 
             ipc::MouseClickCmd cmd{};
@@ -423,7 +410,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         }
         else if (msg == WM_MOUSEWHEEL)
         {
-            if (!webView->IsFocused())
+            if (webView->IsEnabledFocusMode() && !webView->IsFocused())
                 continue;
 
             POINT point = {LOWORD(lParam), HIWORD(lParam)};
@@ -449,7 +436,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         if (msg >= WM_KEYDOWN && msg <= WM_CHAR)
         {
-            if (!webView->IsFocused())
+            if (webView->IsEnabledFocusMode() && !webView->IsFocused())
                 continue;
 
             int keycode = static_cast<int>(wParam);

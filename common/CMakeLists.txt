@@ -1,5 +1,7 @@
 add_library(cef-common INTERFACE)
 
+add_subdirectory(ipc)
+
 target_include_directories(cef-common INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )

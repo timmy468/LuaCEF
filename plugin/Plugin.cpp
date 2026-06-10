@@ -50,14 +50,6 @@ bool Plugin::IsInitialized() const
     return webCore_ != nullptr && webCore_->IsInitialized();
 }
 
-// bool Plugin::IsAnyInputActive() const
-// {
-//     if (!IsInitialized())
-//         return false;
-
-//     return webCore_->IsAnyInputActive();
-// }
-
 RemoteWebView* Plugin::Create(const char* url, int x, int y, int width, int height,
                               RemoteWebView::FrameCallback onCreate)
 {
@@ -93,13 +85,13 @@ void Plugin::Close(RemoteWebView* view)
 
 void Plugin::OnRenderInit()
 {
-    Logger::Instance().Log("Initializing WebCore...");
-    webCore_->Initialize(GetD3DDevice());
-    Logger::Instance().Log("WebCore initialized.");
-
     Logger::Instance().Log("Initializing RenderManager...");
     renderManager_->Initialize();
     Logger::Instance().Log("RenderManager initialized.");
+
+    Logger::Instance().Log("Initializing WebCore...");
+    webCore_->Initialize(GetD3DDevice(), renderManager_);
+    Logger::Instance().Log("WebCore initialized.");
 
     Logger::Instance().Log("Installing game hooks...");
     InstallGameHooks();
@@ -122,7 +114,7 @@ void Plugin::OnD3DReset()
 
 void Plugin::Update()
 {
-    webCore_->Update(renderManager_);
+    webCore_->Update();
 }
 
 bool Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)

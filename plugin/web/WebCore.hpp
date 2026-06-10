@@ -20,7 +20,7 @@ class WebCore
     WebCore() = default;
     ~WebCore();
 
-    void Initialize(IDirect3DDevice9* device);
+    void Initialize(IDirect3DDevice9* device, std::shared_ptr<IRenderManager> renderManager);
     void Shutdown();
 
     bool IsInitialized() const
@@ -39,7 +39,7 @@ class WebCore
 
     void ExecuteJS(RemoteWebView* view, const std::string& code);
 
-    void Update(std::shared_ptr<IRenderManager> renderManager);
+    void Update();
 
     bool OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
     void OnDeviceLost();
@@ -54,6 +54,7 @@ class WebCore
 
     std::shared_ptr<ipc::IPCClient> ipcClient_;
     std::unique_ptr<ProcessManager> processManager_;
+    std::shared_ptr<IRenderManager> renderManager_;
     std::atomic_uint32_t nextBrowserId_{1};
 
     bool messageThreadRunning_{false};
@@ -77,7 +78,7 @@ class WebCore
     void ProcessInput();
 
     void UpdateTextures();
-    void Render(std::shared_ptr<IRenderManager> renderManager);
+    void Render();
 
     void ProcessGameThreadTasks();
     void AddTaskToGameThread(std::function<void()> task);

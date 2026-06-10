@@ -9,6 +9,7 @@
 
 #include "SharedFrame.hpp"
 #include "process/ProcessManager.hpp"
+#include "render/IRenderManager.hpp"
 
 #include "IPCClient.hpp"
 #include "SharedMemory.hpp"
@@ -23,8 +24,9 @@ class RemoteWebView
     using BindFunctionCallback = std::function<void(RemoteWebView*, const std::string&)>;
 
   public:
-    RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x, int y,
-                  int width, int height, FrameCallback onCreate = nullptr);
+    RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, std::shared_ptr<IRenderManager> renderManager,
+                  BrowserId id, IDirect3DDevice9* device, int x, int y, int width, int height,
+                  FrameCallback onCreate = nullptr);
     ~RemoteWebView();
 
     // Export
@@ -61,6 +63,7 @@ class RemoteWebView
     void OnDeviceReset();
 
     void Update();
+    void Render();
 
     bool InputEnabled() const;
     void SetInputEnabled(bool enabled);
@@ -152,9 +155,14 @@ class RemoteWebView
         closing_ = true;
     }
 
-    bool HasFrame() const
+    void SetEnabledFocusMode(bool enabled)
     {
-        return hasFrame_;
+        enabledFocusMode_ = enabled;
+    }
+
+    bool IsEnabledFocusMode() const
+    {
+        return enabledFocusMode_;
     }
 
   private:
@@ -187,9 +195,11 @@ class RemoteWebView
     uint32_t lastSequence_{};
 
     std::shared_ptr<ipc::IPCClient> ipcClient_;
+    std::shared_ptr<IRenderManager> renderManager_;
 
     bool closing_{};
     bool focused_{};
+    bool enabledFocusMode_{true};
     bool hasFrame_{};
 
   private:

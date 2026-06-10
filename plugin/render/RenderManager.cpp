@@ -150,11 +150,11 @@ void RenderManager::CEntityRenderBeforeHook(CEntity* entity)
             if (textureName.empty())
                 return material;
 
-            auto* textures = reinterpret_cast<TextureMap*>(data);
-            auto it = textures->find(textureName);
-            if (it != textures->end())
+            auto& [renderManager, textures] = *reinterpret_cast<std::pair<RenderManager*, TextureMap>*>(data);
+            auto it = textures.find(textureName);
+            if (it != textures.end())
             {
-                AddStoredMaterial(RpMaterialGetTexture(material));
+                renderManager->AddStoredMaterial(RpMaterialGetTexture(material));
                 RpMaterialSetTexture(material, it->second);
             }
         }
@@ -162,6 +162,7 @@ void RenderManager::CEntityRenderBeforeHook(CEntity* entity)
         return material;
     };
 
+    auto data = std::make_pair(this, texturesIt->second);
     if (entity->m_pRwObject->type == rpCLUMP)
     {
         RpClumpForAllAtomics(
@@ -172,12 +173,11 @@ void RenderManager::CEntityRenderBeforeHook(CEntity* entity)
 
                 return atomic;
             },
-            reinterpret_cast<void*>(&texturesIt->second));
+            reinterpret_cast<void*>(&data));
     }
     else if (entity->m_pRwObject->type == rpATOMIC)
     {
-        RpGeometryForAllMaterials(entity->m_pRwAtomic->geometry, MaterialCallback,
-                                  reinterpret_cast<void*>(&texturesIt->second));
+        RpGeometryForAllMaterials(entity->m_pRwAtomic->geometry, MaterialCallback, reinterpret_cast<void*>(&data));
     }
 }
 

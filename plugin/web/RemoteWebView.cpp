@@ -9,9 +9,11 @@
 
 #include "Logger.hpp"
 
-RemoteWebView::RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, BrowserId id, IDirect3DDevice9* device, int x,
-                             int y, int width, int height, FrameCallback onCreate)
-    : ipcClient_(ipcClient), browserId_(id), device_(device), width_(width), height_(height), x_(x), y_(y)
+RemoteWebView::RemoteWebView(std::shared_ptr<ipc::IPCClient> ipcClient, std::shared_ptr<IRenderManager> renderManager,
+                             BrowserId id, IDirect3DDevice9* device, int x, int y, int width, int height,
+                             FrameCallback onCreate)
+    : ipcClient_(ipcClient), renderManager_(renderManager), browserId_(id), device_(device), width_(width),
+      height_(height), x_(x), y_(y)
 {
     onAfterCreateCallbacks_.push_back(onCreate);
 
@@ -124,6 +126,23 @@ void RemoteWebView::Update()
     lastSequence_ = sequence;
 
     UploadTexture();
+}
+
+void RemoteWebView::Render()
+{
+    if (!hasFrame_)
+        return;
+
+    if (closing_)
+        return;
+
+    if (offscreenRenderingEnabled_ || !renderEnabled_)
+        return;
+
+    if (texture_)
+    {
+        renderManager_->RenderTexture(texture_, x_, y_, width_, height_);
+    }
 }
 
 void RemoteWebView::UploadTexture()
