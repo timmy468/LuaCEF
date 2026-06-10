@@ -112,49 +112,57 @@ void RemoteWebView::OnDeviceReset()
 
 void RemoteWebView::Update()
 {
-    if (closing_)
+    if (closing_ || !frame_)
         return;
 
-    if (!frame_)
-        return;
+    const auto sequence = frame_->header.sequence.load(std::memory_order_acquire);
 
-    if (frame_->header.sequence == lastSequence_)
+    if (sequence == lastSequence_)
         return;
 
     hasFrame_ = true;
-
-    lastSequence_ = frame_->header.sequence;
+    lastSequence_ = sequence;
 
     UploadTexture();
 }
 
 void RemoteWebView::UploadTexture()
 {
-    if (closing_)
+    if (closing_ || !texture_)
         return;
-
-    Logger::Instance().Log("UploadTexture: {} {}", frame_->header.width, frame_->header.height);
-
-    D3DLOCKED_RECT rect{};
-
-    if (FAILED(texture_->LockRect(0, &rect, nullptr, D3DLOCK_DISCARD)))
-    {
-        return;
-    }
 
     const uint32_t width = frame_->header.width;
-    const uint32_t height = frame_->header.height;
+
+    const uint32_t dirtyCount = frame_->header.dirtyRectCount;
 
     const uint8_t* src = frame_->pixels;
 
-    uint8_t* dst = static_cast<uint8_t*>(rect.pBits);
-
-    for (uint32_t y = 0; y < height; ++y)
+    for (uint32_t i = 0; i < dirtyCount; ++i)
     {
-        memcpy(dst + y * rect.Pitch, src + y * width * 4, width * 4);
-    }
+        const auto& dirty = frame_->dirtyRects[i];
 
-    texture_->UnlockRect(0);
+        RECT rect{dirty.x, dirty.y, dirty.x + dirty.width, dirty.y + dirty.height};
+
+        D3DLOCKED_RECT lockedRect{};
+
+        if (FAILED(texture_->LockRect(0, &lockedRect, &rect, 0)))
+        {
+            continue;
+        }
+
+        auto* dst = static_cast<uint8_t*>(lockedRect.pBits);
+
+        for (int y = 0; y < dirty.height; ++y)
+        {
+            memcpy(dst + y * lockedRect.Pitch,
+
+                   src + ((dirty.y + y) * width + dirty.x) * 4,
+
+                   dirty.width * 4);
+        }
+
+        texture_->UnlockRect(0);
+    }
 }
 
 bool RemoteWebView::InputEnabled() const

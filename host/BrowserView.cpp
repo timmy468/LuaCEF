@@ -39,18 +39,41 @@ bool BrowserView::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRef
     return false;
 }
 
-void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectList&, const void* buffer, int width,
-                          int height)
+void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectList& dirtyRects, const void* buffer,
+                          int width, int height)
 {
     if (!frame_)
         return;
 
-    Logger::Instance().Log("BrowserView::OnPaint() {:p} {:d} {:d}", (void*)this, width, height);
-
     frame_->header.width = width;
     frame_->header.height = height;
 
-    memcpy(frame_->pixels, buffer, width * height * 4);
+    const auto* srcPixels = static_cast<const uint8_t*>(buffer);
+
+    uint32_t rectCount = std::min<uint32_t>(static_cast<uint32_t>(dirtyRects.size()), MAX_DIRTY_RECTS);
+
+    frame_->header.dirtyRectCount = rectCount;
+
+    uint32_t index = 0;
+
+    for (const auto& rect : dirtyRects)
+    {
+        if (index >= MAX_DIRTY_RECTS)
+            break;
+
+        frame_->dirtyRects[index] = {rect.x, rect.y, rect.width, rect.height};
+
+        for (int y = rect.y; y < rect.y + rect.height; ++y)
+        {
+            memcpy(frame_->pixels + (y * width + rect.x) * 4,
+
+                   srcPixels + (y * width + rect.x) * 4,
+
+                   rect.width * 4);
+        }
+
+        ++index;
+    }
 
     frame_->header.sequence.fetch_add(1, std::memory_order_release);
 }
