@@ -92,6 +92,7 @@ void RemoteWebView::Close()
     SetInputEnabled(false);
     SetOffscreenRenderingEnabled(false);
     SetRenderEnabled(false);
+    SetFocused(false);
 }
 
 void RemoteWebView::OnDeviceLost()
@@ -164,8 +165,6 @@ bool RemoteWebView::InputEnabled() const
 void RemoteWebView::SetInputEnabled(bool enabled)
 {
     inputEnabled_ = enabled;
-    if (!inputEnabled_)
-        samp_utils::ToggleCursor(false);
 }
 
 void RemoteWebView::CreateTexture(uint32_t width, uint32_t height)

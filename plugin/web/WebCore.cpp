@@ -311,12 +311,15 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         const auto gameActive = wParam != 0;
 
-        // fix for games that don't have cursor
-        if (!gameActive)
-        {
-            if (IsAnyInputActive())
-                samp_utils::ToggleCursor(false);
-        }
+        // // fix for games that don't have cursor
+        // if (gameActive)
+        // {
+        //     if (IsAnyInputActive())
+        //     {
+
+        //         Logger::Instance().Log("ShowCursor(true)");
+        //     }
+        // }
 
         ipc::PauseCmd cmd{};
         cmd.paused = !gameActive;
@@ -803,4 +806,5 @@ void WebCore::ProcessInput()
         return;
 
     samp_utils::ToggleCursor(true);
+    device_->ShowCursor(true);
 }
