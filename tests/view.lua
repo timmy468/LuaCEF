@@ -17,7 +17,6 @@ function main()
 
     webView = luacef.create(
         "file:///c:/Games/Advance Games/testcef/index.html", 500, 500, 500, 500, function(_)
-            webView:setInput(true)
             sampAddChatMessage("WebView created!", 0x00FF00)
         end)
 
@@ -33,6 +32,7 @@ function main()
 
     webView:addOnLoadingCallback(function(_, httpStatusCode)
         sampAddChatMessage("Loading status: " .. httpStatusCode, 0x00FF00)
+        webView:setInput(true)
         webView:executeJS([[document.getElementById("title").style.color = "red";]])
     end)
 
@@ -40,15 +40,18 @@ function main()
     --     sampAddChatMessage("WebView closed!", 0x00FF00)
     -- end)
 
-
     -- "file:///C:/Users/egaaa/Videos/36094040.mp4"
 
-    webView2 = luacef.create(
-        "https://threejs.org/examples/#webgl_loader_gltf", 0, 0, 500, 500, function(_)
-            -- webView:setInput(true)
-            sampAddChatMessage("WebView2 created!", 0x00FF00)
-            -- webView:loadURL("https://www.youtube.com/")
-        end)
+    -- webView2 = luacef.create(
+    --     "https://threejs.org/examples/#webgl_loader_gltf", 0, 0, 500, 500, function(_)
+    --         sampAddChatMessage("WebView2 created!", 0x00FF00)
+    --         -- webView:loadURL("https://www.youtube.com/")
+    --     end)
+
+    -- webView2:addOnLoadingCallback(function(_, httpStatusCode)
+    --     webView:setInput(true)
+    --     sampAddChatMessage("Loading status: " .. httpStatusCode, 0x00FF00)
+    -- end)
 
     wait(-1)
 end
