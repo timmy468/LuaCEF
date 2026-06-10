@@ -152,6 +152,11 @@ class RemoteWebView
         closing_ = true;
     }
 
+    bool HasFrame() const
+    {
+        return hasFrame_;
+    }
+
   private:
     BrowserId browserId_;
 
@@ -185,6 +190,7 @@ class RemoteWebView
 
     bool closing_{};
     bool focused_{};
+    bool hasFrame_{};
 
   private:
     void CreateTexture(uint32_t width, uint32_t height);

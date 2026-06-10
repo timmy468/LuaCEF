@@ -120,6 +120,8 @@ void RemoteWebView::Update()
     if (frame_->header.sequence == lastSequence_)
         return;
 
+    hasFrame_ = true;
+
     lastSequence_ = frame_->header.sequence;
 
     UploadTexture();

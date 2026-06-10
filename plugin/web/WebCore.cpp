@@ -271,9 +271,11 @@ void WebCore::Update(std::shared_ptr<IRenderManager> renderManager)
 
 void WebCore::Render(std::shared_ptr<IRenderManager> renderManager)
 {
-    // TODO: fix SF & white screen
     for (auto& view : webViews_)
     {
+        if (!view->HasFrame())
+            continue;
+
         if (view->OffscreenRenderingEnabled() || !view->RenderEnabled())
             continue;
 
@@ -282,8 +284,7 @@ void WebCore::Render(std::shared_ptr<IRenderManager> renderManager)
 
         if (auto texture = view->GetTexture())
         {
-            renderManager->RenderTexture(view->GetTexture(), view->GetX(), view->GetY(), view->GetWidth(),
-                                         view->GetHeight());
+            renderManager->RenderTexture(texture, view->GetX(), view->GetY(), view->GetWidth(), view->GetHeight());
         }
     }
 }

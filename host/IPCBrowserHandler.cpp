@@ -197,7 +197,6 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         {
             if (auto browser = it->second->GetBrowser())
             {
-                // todo: response
                 CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<CefBrowser> browser)
                                                    { browser->GetHost()->CloseBrowser(true); }, browser));
             }
@@ -243,7 +242,6 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
             if (auto browser = it->second->GetBrowser())
             {
                 const std::string url = cmd->url;
-                // Todo: response
                 CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<CefBrowser> browser, std::string url)
                                                    { browser->GetMainFrame()->LoadURL(url); }, browser, url));
             }
