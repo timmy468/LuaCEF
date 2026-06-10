@@ -14,7 +14,7 @@
 class IPCBrowserHandler : public ipc::IPCMessageHandler
 {
   public:
-    explicit IPCBrowserHandler();
+    explicit IPCBrowserHandler(DWORD parentPid);
     ~IPCBrowserHandler() override;
 
     void HandleMessage(HANDLE pipe, ipc::CommandType type, const void* payload, uint32_t payloadSize) override;
@@ -31,4 +31,6 @@ class IPCBrowserHandler : public ipc::IPCMessageHandler
     std::map<uint32_t, CefRefPtr<BrowserView>> browsers_;
 
     std::shared_ptr<ipc::IPCServer> ipcServer_;
+
+    DWORD parentPid_;
 };

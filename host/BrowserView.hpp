@@ -20,7 +20,7 @@ class BrowserView : public CefClient,
     using LuaCallback = std::function<void(BrowserView*, const CefString&, const CefString&)>;
 
   public:
-    BrowserView(uint32_t id, int x, int y, int width, int height);
+    BrowserView(DWORD parentPid, uint32_t id, int x, int y, int width, int height);
 
     // CefClient
     CefRefPtr<CefRenderHandler> GetRenderHandler() override

@@ -5,10 +5,10 @@
 
 #include "Logger.hpp"
 
-BrowserView::BrowserView(uint32_t id, int32_t x, int32_t y, int32_t width, int32_t height)
+BrowserView::BrowserView(DWORD parentPid, uint32_t id, int32_t x, int32_t y, int32_t width, int32_t height)
     : x_(x), y_(y), width_(width), height_(height), webviewId(id)
 {
-    sharedMemory_.Create(std::format("LuaCEF_SharedMemory_{}", id));
+    sharedMemory_.Create(std::format("LuaCEF_SharedMemory_{}_{}", parentPid, id));
     memset(sharedMemory_.GetBuffer(), 0, sharedMemory_.GetSize());
 
     frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());

@@ -9,16 +9,17 @@
 
 #include "Logger.hpp"
 
-bool Host::Initialize()
+bool Host::Initialize(DWORD pid)
 {
+    parentPid_ = pid;
     InitCef();
 
-    ipcHandler_ = std::make_shared<IPCBrowserHandler>();
+    ipcHandler_ = std::make_shared<IPCBrowserHandler>(parentPid_);
     ipcServer_ = std::make_shared<ipc::IPCServer>(ipcHandler_);
     ipcHandler_->SetIPCServer(ipcServer_);
 
     // Запустить сервер в отдельном потоке
-    std::thread server_thread([this]() { ipcServer_->Start(R"(\\.\pipe\LuaCEF_IPC)", 8); });
+    std::thread server_thread([this]() { ipcServer_->Start(std::format(R"(\\.\pipe\LuaCEF_IPC_{})", parentPid_), 8); });
     server_thread.detach(); // Отпустить поток
 
     StartParentMonitor();

@@ -53,6 +53,8 @@ bool ProcessManager::Start()
         return false;
     }
 
+    Logger::Instance().Log("Subprocess created (PID: {}), cmdline: {}", process_id_, cmdLine);
+
     process_handle_ = process_info.hProcess;
     process_id_ = process_info.dwProcessId;
 

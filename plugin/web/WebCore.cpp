@@ -22,6 +22,9 @@ void WebCore::Initialize(IDirect3DDevice9* device)
         return;
     }
 
+    const auto currentProcessId = GetCurrentProcessId();
+    auto pipeName = std::format(R"(\\.\pipe\LuaCEF_IPC_{})", currentProcessId);
+
     // Подождать пока subprocess инициализируется (max 5 секунд)
     for (int i = 0; i < 50; ++i)
     {
@@ -29,7 +32,7 @@ void WebCore::Initialize(IDirect3DDevice9* device)
 
         // Создать IPC клиент и подключиться к subprocess
         ipcClient_ = std::make_shared<ipc::IPCClient>();
-        if (ipcClient_->Connect())
+        if (ipcClient_->Connect(pipeName))
         {
             Logger::Instance().Log("WebCore initialized, connected to subprocess");
 
@@ -562,7 +565,7 @@ void WebCore::MessageReceiveThreadProc()
                     auto it = webviewIdMap_.find(browserId);
                     if (it != webviewIdMap_.end())
                     {
-                        it->second->AttachBrowser();
+                        it->second->AttachBrowser(GetCurrentProcessId());
                     }
                 });
 

@@ -3,7 +3,6 @@
 #include <atomic>
 #include <memory>
 
-
 #include <cef_app.h>
 
 #include "BrowserView.hpp"
@@ -12,13 +11,8 @@
 class Host
 {
   public:
-    bool Initialize();
+    bool Initialize(DWORD pid);
     void Run();
-
-    void SetParentPid(DWORD pid)
-    {
-        parentPid_ = pid;
-    }
 
   private:
     DWORD parentPid_{};

@@ -55,7 +55,7 @@ class RemoteWebView
     }
 
     void Close();
-    void AttachBrowser();
+    void AttachBrowser(DWORD parentPid);
 
     void OnDeviceLost();
     void OnDeviceReset();

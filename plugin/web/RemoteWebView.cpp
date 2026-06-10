@@ -26,12 +26,12 @@ RemoteWebView::~RemoteWebView()
     DeleteTexture();
 }
 
-void RemoteWebView::AttachBrowser()
+void RemoteWebView::AttachBrowser(DWORD parentPid)
 {
     if (closing_)
         return;
 
-    if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}", static_cast<uint32_t>(browserId_))))
+    if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}_{}", parentPid, static_cast<uint32_t>(browserId_))))
     {
         frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
         Logger::Instance().Log("SharedFrame: {:p} {} {}", (void*)frame_, frame_->header.width, frame_->header.height);

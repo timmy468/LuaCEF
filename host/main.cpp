@@ -56,9 +56,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
     Host host;
 
-    host.SetParentPid(parentPid);
-
-    if (!host.Initialize())
+    if (!host.Initialize(parentPid))
         return 1;
 
     host.Run();
