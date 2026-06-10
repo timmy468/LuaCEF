@@ -61,20 +61,13 @@ void WebCore::Shutdown()
         messageThread_.join();
     }
 
+    for (auto* view : webViews_)
     {
-        std::lock_guard lock(webViews_.mutex);
-        for (auto* view : webViews_.vector)
-        {
-            delete view;
-        }
-
-        webViews_.vector.clear();
+        delete view;
     }
 
-    {
-        std::lock_guard lock(webviewIdMap_.mutex);
-        webviewIdMap_.map.clear();
-    }
+    webViews_.clear();
+    webviewIdMap_.clear();
 
     ipcClient_.reset();
 
@@ -100,16 +93,9 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
     strcpy_s(cmd.url, sizeof(cmd.url), url.c_str());
 
     auto* webView = new RemoteWebView(ipcClient_, cmd.id, device_, x, y, w, h, onCreate);
+    webViews_.push_back(webView);
 
-    {
-        std::lock_guard lock(webViews_.mutex);
-        webViews_.vector.push_back(webView);
-    }
-
-    {
-        std::lock_guard lock(webviewIdMap_.mutex);
-        webviewIdMap_.map[cmd.id] = webView;
-    }
+    webviewIdMap_[cmd.id] = webView;
 
     AddTaskToMessageThread(
         [this, cmd]()
@@ -131,9 +117,8 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
 
 void WebCore::Close(RemoteWebView* view)
 {
-    std::lock_guard lock(webViews_.mutex);
-    auto it = std::find(webViews_.vector.begin(), webViews_.vector.end(), view);
-    if (it != webViews_.vector.end())
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
     {
         if (view->IsClosing())
             return;
@@ -158,9 +143,8 @@ void WebCore::Close(RemoteWebView* view)
 
 void WebCore::LoadURL(RemoteWebView* view, const std::string& url)
 {
-    std::lock_guard lock(webViews_.mutex);
-    auto it = std::find(webViews_.vector.begin(), webViews_.vector.end(), view);
-    if (it != webViews_.vector.end())
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
     {
         (*it)->SetURL(url);
 
@@ -183,9 +167,8 @@ void WebCore::LoadURL(RemoteWebView* view, const std::string& url)
 
 void WebCore::ReloadPage(RemoteWebView* view, bool ignoreCache)
 {
-    std::lock_guard lock(webViews_.mutex);
-    auto it = std::find(webViews_.vector.begin(), webViews_.vector.end(), view);
-    if (it != webViews_.vector.end())
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
     {
         ipc::ReloadPageCmd cmd{};
         cmd.id = view->GetBrowserId();
@@ -206,9 +189,8 @@ void WebCore::ReloadPage(RemoteWebView* view, bool ignoreCache)
 
 void WebCore::GoBack(RemoteWebView* view)
 {
-    std::lock_guard lock(webViews_.mutex);
-    auto it = std::find(webViews_.vector.begin(), webViews_.vector.end(), view);
-    if (it != webViews_.vector.end())
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
     {
         ipc::GoBackCmd cmd{};
         cmd.id = view->GetBrowserId();
@@ -228,9 +210,8 @@ void WebCore::GoBack(RemoteWebView* view)
 
 void WebCore::GoForward(RemoteWebView* view)
 {
-    std::lock_guard lock(webViews_.mutex);
-    auto it = std::find(webViews_.vector.begin(), webViews_.vector.end(), view);
-    if (it != webViews_.vector.end())
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
     {
         ipc::GoForwardCmd cmd{};
         cmd.id = view->GetBrowserId();
@@ -250,9 +231,8 @@ void WebCore::GoForward(RemoteWebView* view)
 
 void WebCore::ExecuteJS(RemoteWebView* view, const std::string& code)
 {
-    std::lock_guard lock(webViews_.mutex);
-    auto it = std::find(webViews_.vector.begin(), webViews_.vector.end(), view);
-    if (it != webViews_.vector.end())
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
     {
         ipc::ExecuteJSCmd cmd{};
         cmd.id = view->GetBrowserId();
@@ -273,8 +253,7 @@ void WebCore::ExecuteJS(RemoteWebView* view, const std::string& code)
 
 bool WebCore::IsAnyInputActive() const
 {
-    std::lock_guard lock(webViews_.mutex);
-    for (auto* view : webViews_.vector)
+    for (auto* view : webViews_)
     {
         if (view->InputEnabled())
             return true;
@@ -295,8 +274,7 @@ void WebCore::Update(std::shared_ptr<IRenderManager> renderManager)
 
 void WebCore::Render(std::shared_ptr<IRenderManager> renderManager)
 {
-    std::lock_guard lock(webViews_.mutex);
-    for (auto& view : webViews_.vector)
+    for (auto& view : webViews_)
     {
         if (!view->HasFrame())
             continue;
@@ -316,8 +294,8 @@ void WebCore::Render(std::shared_ptr<IRenderManager> renderManager)
 
 void WebCore::UpdateTextures()
 {
-    std::lock_guard lock(webViews_.mutex);
-    for (auto& view : webViews_.vector)
+
+    for (auto& view : webViews_)
         view->Update();
 }
 
@@ -352,8 +330,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         AddTaskToMessageThread([this, cmd] { ipcClient_->Send(ipc::CommandType::Pause, cmd); });
     }
 
-    std::lock_guard lock(webviewIdMap_.mutex);
-    for (auto& [id, webView] : webviewIdMap_.map)
+    for (auto& [id, webView] : webviewIdMap_)
     {
         if (webView->IsClosing())
             continue;
@@ -522,15 +499,13 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 void WebCore::OnDeviceLost()
 {
-    std::lock_guard lock(webViews_.mutex);
-    for (auto& view : webViews_.vector)
+    for (auto& view : webViews_)
         view->OnDeviceLost();
 }
 
 void WebCore::OnDeviceReset()
 {
-    std::lock_guard lock(webViews_.mutex);
-    for (auto& view : webViews_.vector)
+    for (auto& view : webViews_)
         view->OnDeviceReset();
 }
 
@@ -552,10 +527,7 @@ void WebCore::MessageReceiveThreadProc()
         ProcessMessageThreadTasks();
 
         if (!ipcClient_->HasData())
-        {
-            Sleep(1);
             continue;
-        }
 
         ipc::MessageHeader header{};
 
@@ -590,9 +562,8 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId]()
                 {
-                    std::lock_guard lock(webviewIdMap_.mutex);
-                    auto it = webviewIdMap_.map.find(browserId);
-                    if (it != webviewIdMap_.map.end())
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
                     {
                         it->second->AttachBrowser(GetCurrentProcessId());
                     }
@@ -624,19 +595,17 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId]()
                 {
-                    std::lock_guard lock(webviewIdMap_.mutex);
-                    auto it = webviewIdMap_.map.find(browserId);
-                    if (it != webviewIdMap_.map.end())
+                    auto it = webviewIdMap_.find(browserId);
+
+                    if (it != webviewIdMap_.end())
                     {
                         auto* view = it->second;
 
                         view->OnClose();
 
-                        std::lock_guard lock(webViews_.mutex);
-                        webViews_.vector.erase(std::remove(webViews_.vector.begin(), webViews_.vector.end(), view),
-                                               webViews_.vector.end());
+                        webViews_.erase(std::remove(webViews_.begin(), webViews_.end(), view), webViews_.end());
 
-                        webviewIdMap_.map.erase(it);
+                        webviewIdMap_.erase(it);
 
                         delete view;
                     }
@@ -668,9 +637,8 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId, response]()
                 {
-                    std::lock_guard lock(webviewIdMap_.mutex);
-                    auto it = webviewIdMap_.map.find(browserId);
-                    if (it != webviewIdMap_.map.end())
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
                     {
                         it->second->OnLoading(response.httpStatusCode);
                     }
@@ -702,9 +670,8 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId]()
                 {
-                    std::lock_guard lock(webviewIdMap_.mutex);
-                    auto it = webviewIdMap_.map.find(browserId);
-                    if (it != webviewIdMap_.map.end())
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
                     {
                         it->second->OnAfterCreate();
                     }
@@ -737,9 +704,8 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId, url]()
                 {
-                    std::lock_guard lock(webviewIdMap_.mutex);
-                    auto it = webviewIdMap_.map.find(browserId);
-                    if (it != webviewIdMap_.map.end())
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
                     {
                         it->second->OnURLChanged(url);
                     }
@@ -773,9 +739,8 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId, function, args]()
                 {
-                    std::lock_guard lock(webviewIdMap_.mutex);
-                    auto it = webviewIdMap_.map.find(browserId);
-                    if (it != webviewIdMap_.map.end())
+                    auto it = webviewIdMap_.find(browserId);
+                    if (it != webviewIdMap_.end())
                     {
                         it->second->OnBindFunctionCall(function, args);
                     }
