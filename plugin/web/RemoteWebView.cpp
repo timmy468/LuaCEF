@@ -104,11 +104,10 @@ void RemoteWebView::OnDeviceLost()
 
 void RemoteWebView::OnDeviceReset()
 {
-
     if (!texture_)
     {
         CreateTexture(width_, height_);
-        UploadTexture();
+        RestoreTextureFromSharedMemory();
     }
 }
 
@@ -117,15 +116,24 @@ void RemoteWebView::Update()
     if (closing_ || !frame_)
         return;
 
-    const auto sequence = frame_->header.sequence.load(std::memory_order_acquire);
+    const uint32_t beginSeq = frame_->header.sequence.load(std::memory_order_acquire);
 
-    if (sequence == lastSequence_)
+    if (beginSeq & 1)
+        return;
+
+    if (beginSeq == lastSequence_)
+        return;
+
+    if (!UploadTexture(beginSeq))
+        return;
+
+    const uint32_t endSeq = frame_->header.sequence.load(std::memory_order_acquire);
+
+    if (beginSeq != endSeq)
         return;
 
     hasFrame_ = true;
-    lastSequence_ = sequence;
-
-    UploadTexture();
+    lastSequence_ = beginSeq;
 }
 
 void RemoteWebView::Render()
@@ -145,43 +153,127 @@ void RemoteWebView::Render()
     }
 }
 
-void RemoteWebView::UploadTexture()
+bool RemoteWebView::UploadTexture(uint32_t expectedSeq)
 {
-    if (closing_ || !texture_)
-        return;
+    if (closing_ || !texture_ || !frame_)
+        return false;
 
-    const uint32_t width = frame_->header.width;
+    const uint32_t width = frame_->header.width.load(std::memory_order_relaxed);
 
-    const uint32_t dirtyCount = frame_->header.dirtyRectCount;
+    const uint32_t height = frame_->header.height.load(std::memory_order_relaxed);
+
+    if (width == 0 || height == 0 || width > MAX_WIDTH || height > MAX_HEIGHT)
+    {
+        return false;
+    }
+
+    if (width != static_cast<uint32_t>(width_) || height != static_cast<uint32_t>(height_))
+    {
+        DeleteTexture();
+
+        width_ = width;
+        height_ = height;
+
+        CreateTexture(width_, height_);
+
+        if (!texture_)
+            return false;
+    }
+
+    const uint32_t dirtyCount =
+        std::min(frame_->header.dirtyRectCount.load(std::memory_order_relaxed), MAX_DIRTY_RECTS);
+
+    if (dirtyCount == 0)
+        return true;
 
     const uint8_t* src = frame_->pixels;
 
     for (uint32_t i = 0; i < dirtyCount; ++i)
     {
+        if (frame_->header.sequence.load(std::memory_order_acquire) != expectedSeq)
+            return false;
+
         const auto& dirty = frame_->dirtyRects[i];
+
+        if (dirty.x < 0 || dirty.y < 0 || dirty.width <= 0 || dirty.height <= 0)
+        {
+            continue;
+        }
+
+        if (dirty.x >= static_cast<int>(width) || dirty.y >= static_cast<int>(height))
+        {
+            continue;
+        }
+
+        if (dirty.width > static_cast<int>(width) - dirty.x || dirty.height > static_cast<int>(height) - dirty.y)
+        {
+            continue;
+        }
 
         RECT rect{dirty.x, dirty.y, dirty.x + dirty.width, dirty.y + dirty.height};
 
         D3DLOCKED_RECT lockedRect{};
 
         if (FAILED(texture_->LockRect(0, &lockedRect, &rect, 0)))
-        {
             continue;
-        }
 
         auto* dst = static_cast<uint8_t*>(lockedRect.pBits);
 
         for (int y = 0; y < dirty.height; ++y)
         {
-            memcpy(dst + y * lockedRect.Pitch,
-
-                   src + ((dirty.y + y) * width + dirty.x) * 4,
-
-                   dirty.width * 4);
+            memcpy(dst + y * lockedRect.Pitch, src + ((dirty.y + y) * width + dirty.x) * 4, dirty.width * 4);
         }
 
         texture_->UnlockRect(0);
     }
+
+    return true;
+}
+
+bool RemoteWebView::RestoreTextureFromSharedMemory()
+{
+    if (!texture_ || !frame_)
+        return false;
+
+    uint32_t beginSeq;
+    uint32_t endSeq;
+
+    do
+    {
+        beginSeq = frame_->header.sequence.load(std::memory_order_acquire);
+
+        if (beginSeq & 1)
+            return false;
+
+        const uint32_t width = frame_->header.width.load(std::memory_order_relaxed);
+
+        const uint32_t height = frame_->header.height.load(std::memory_order_relaxed);
+
+        if (width == 0 || height == 0 || width > MAX_WIDTH || height > MAX_HEIGHT)
+        {
+            return false;
+        }
+
+        D3DLOCKED_RECT rect{};
+
+        if (FAILED(texture_->LockRect(0, &rect, nullptr, 0)))
+            return false;
+
+        const uint8_t* src = frame_->pixels;
+        auto* dst = static_cast<uint8_t*>(rect.pBits);
+
+        for (uint32_t y = 0; y < height; ++y)
+        {
+            memcpy(dst + y * rect.Pitch, src + y * width * 4, width * 4);
+        }
+
+        texture_->UnlockRect(0);
+
+        endSeq = frame_->header.sequence.load(std::memory_order_acquire);
+
+    } while (beginSeq != endSeq);
+
+    return true;
 }
 
 bool RemoteWebView::InputEnabled() const

@@ -205,5 +205,6 @@ class RemoteWebView
   private:
     void CreateTexture(uint32_t width, uint32_t height);
     void DeleteTexture();
-    void UploadTexture();
+    bool UploadTexture(uint32_t expectedSeq);
+    bool RestoreTextureFromSharedMemory();
 };

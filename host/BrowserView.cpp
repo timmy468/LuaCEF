@@ -45,14 +45,19 @@ void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectLis
     if (!frame_)
         return;
 
-    frame_->header.width = width;
-    frame_->header.height = height;
+    if (width > MAX_WIDTH || height > MAX_HEIGHT)
+    {
+        Logger::Instance().Log("Browser too large %dx%d", width, height);
+        return;
+    }
+
+    uint32_t seq = frame_->header.sequence.fetch_add(1,
+                                                     std::memory_order_acq_rel); // становится odd
+
+    frame_->header.width.store(width, std::memory_order_relaxed);
+    frame_->header.height.store(height, std::memory_order_relaxed);
 
     const auto* srcPixels = static_cast<const uint8_t*>(buffer);
-
-    uint32_t rectCount = std::min<uint32_t>(static_cast<uint32_t>(dirtyRects.size()), MAX_DIRTY_RECTS);
-
-    frame_->header.dirtyRectCount = rectCount;
 
     uint32_t index = 0;
 
@@ -60,6 +65,21 @@ void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectLis
     {
         if (index >= MAX_DIRTY_RECTS)
             break;
+
+        if (rect.x < 0 || rect.y < 0 || rect.width <= 0 || rect.height <= 0)
+        {
+            continue;
+        }
+
+        if (rect.x >= width || rect.y >= height)
+        {
+            continue;
+        }
+
+        if (rect.width > width - rect.x || rect.height > height - rect.y)
+        {
+            continue;
+        }
 
         frame_->dirtyRects[index] = {rect.x, rect.y, rect.width, rect.height};
 
@@ -75,7 +95,9 @@ void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectLis
         ++index;
     }
 
-    frame_->header.sequence.fetch_add(1, std::memory_order_release);
+    frame_->header.dirtyRectCount.store(index, std::memory_order_relaxed);
+
+    frame_->header.sequence.store(seq + 2, std::memory_order_release);
 }
 
 void BrowserView::GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect)
