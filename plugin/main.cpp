@@ -58,7 +58,7 @@ extern "C"
         if (!Plugin::GetInstance().IsInitialized())
             return;
 
-        Plugin::GetInstance().GetWebCore()->OnDeviceLost();
+        Plugin::GetInstance().OnD3DLost();
     }
 
     API_EXPORT void LuaCEF_OnD3DReset()
@@ -66,7 +66,7 @@ extern "C"
         if (!Plugin::GetInstance().IsInitialized())
             return;
 
-        Plugin::GetInstance().GetWebCore()->OnDeviceReset();
+        Plugin::GetInstance().OnD3DReset();
     }
 
     API_EXPORT void LuaCEF_Close(RemoteWebView* view)

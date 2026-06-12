@@ -25,6 +25,9 @@ class RenderManager : public IRenderManager
     void Initialize() override;
     void Shutdown() override;
 
+    void OnDeviceLost() override;
+    void OnDeviceReset() override;
+
     void RenderTexture(IDirect3DTexture9* texture, float x, float y, float width, float height) override;
     void AddToEntityTexture(CEntity* entity, const std::string& textureName, IDirect3DTexture9* texture) override;
     void RemoveFromEntityTexture(CEntity* entity, const std::string& textureName) override;

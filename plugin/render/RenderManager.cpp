@@ -15,15 +15,27 @@ struct Vertex
 
 void RenderManager::Initialize()
 {
-    auto* device = GetD3DDevice();
-    device->CreateStateBlock(D3DSBT_ALL, &stateBlock_);
-
     InitHooks();
 }
 
 void RenderManager::Shutdown()
 {
-    stateBlock_->Release();
+    if (stateBlock_)
+        stateBlock_->Release();
+}
+
+void RenderManager::OnDeviceLost()
+{
+    if (stateBlock_)
+    {
+        stateBlock_->Release();
+        stateBlock_ = nullptr;
+    }
+}
+
+void RenderManager::OnDeviceReset()
+{
+    // ничего
 }
 
 void RenderManager::RenderTexture(IDirect3DTexture9* texture, float x, float y, float width, float height)
@@ -31,6 +43,12 @@ void RenderManager::RenderTexture(IDirect3DTexture9* texture, float x, float y, 
     auto* device = GetD3DDevice();
     if (!device || !texture)
         return;
+
+    if (!stateBlock_)
+    {
+        auto* device = GetD3DDevice();
+        device->CreateStateBlock(D3DSBT_ALL, &stateBlock_);
+    }
 
     stateBlock_->Capture();
 

@@ -106,6 +106,7 @@ void Plugin::OnD3DLost()
     Logger::Instance().Log("D3D device lost.");
 
     webCore_->OnDeviceLost();
+    renderManager_->OnDeviceLost();
 }
 
 void Plugin::OnD3DReset()
@@ -116,6 +117,7 @@ void Plugin::OnD3DReset()
     Logger::Instance().Log("D3D device reset.");
 
     webCore_->OnDeviceReset();
+    renderManager_->OnDeviceReset();
 }
 
 void Plugin::Update()
