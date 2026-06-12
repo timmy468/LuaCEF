@@ -538,6 +538,35 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         break;
     }
 
+    case ipc::CommandType::SetFPS:
+    {
+        if (payloadSize != sizeof(ipc::SetFPSCmd))
+            return;
+
+        auto* cmd = static_cast<const ipc::SetFPSCmd*>(payload);
+
+        Logger::Instance().Log("IPC SetFPS[{}] {}", cmd->id, cmd->fps);
+
+        auto it = browsers_.find(cmd->id);
+        if (it != browsers_.end())
+        {
+            if (auto browser = it->second->GetBrowser())
+            {
+                CefPostTask(TID_UI, base::BindOnce(
+                                        [](CefRefPtr<CefBrowser> browser, int fps)
+                                        {
+                                            if (auto host = browser->GetHost())
+                                            {
+                                                host->SetWindowlessFrameRate(fps);
+                                            }
+                                        },
+                                        browser, cmd->fps));
+            }
+        }
+
+        break;
+    }
+
     default:
     {
         Logger::Instance().Log("Unknown IPC command {}", static_cast<int>(type));

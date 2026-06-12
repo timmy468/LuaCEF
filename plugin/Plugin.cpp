@@ -100,6 +100,9 @@ void Plugin::OnRenderInit()
 
 void Plugin::OnD3DLost()
 {
+    if (!IsInitialized())
+        return;
+
     Logger::Instance().Log("D3D device lost.");
 
     webCore_->OnDeviceLost();
@@ -107,6 +110,9 @@ void Plugin::OnD3DLost()
 
 void Plugin::OnD3DReset()
 {
+    if (!IsInitialized())
+        return;
+
     Logger::Instance().Log("D3D device reset.");
 
     webCore_->OnDeviceReset();
@@ -114,10 +120,16 @@ void Plugin::OnD3DReset()
 
 void Plugin::Update()
 {
+    if (!IsInitialized())
+        return;
+
     webCore_->Update();
 }
 
 bool Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    if (!IsInitialized())
+        return false;
+
     return webCore_->OnWndProc(hwnd, msg, wParam, lParam);
 }

@@ -36,6 +36,7 @@ class WebCore
     void ReloadPage(RemoteWebView* view, bool ignoreCache);
     void GoBack(RemoteWebView* view);
     void GoForward(RemoteWebView* view);
+    void SetFPS(RemoteWebView* view, int fps);
 
     void ExecuteJS(RemoteWebView* view, const std::string& code);
 
@@ -49,7 +50,6 @@ class WebCore
     IDirect3DDevice9* device_{};
 
     std::vector<RemoteWebView*> webViews_;
-
     std::map<RemoteWebView::BrowserId, RemoteWebView*> webviewIdMap_; // Маппинг ID из subprocess к локальным объектам
 
     std::shared_ptr<ipc::IPCClient> ipcClient_;

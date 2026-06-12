@@ -30,6 +30,7 @@ enum class CommandType : uint16_t
     Key,
 
     Pause,
+    SetFPS,
 
     Ping,
     Pong,
@@ -177,6 +178,13 @@ struct KeyCmd
 struct PauseCmd
 {
     bool paused;
+};
+
+struct SetFPSCmd
+{
+    uint32_t id;
+
+    uint32_t fps;
 };
 
 #pragma pack(push, 1)

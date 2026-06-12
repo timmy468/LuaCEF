@@ -252,6 +252,28 @@ void WebCore::ExecuteJS(RemoteWebView* view, const std::string& code)
     }
 }
 
+void WebCore::SetFPS(RemoteWebView* view, int fps)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it != webViews_.end())
+    {
+        ipc::SetFPSCmd cmd{};
+        cmd.id = view->GetBrowserId();
+        cmd.fps = fps;
+
+        AddTaskToMessageThread(
+            [this, cmd]()
+            {
+                Logger::Instance().Log("Sending SetFPSCommand command");
+                if (!ipcClient_->Send(ipc::CommandType::SetFPS, cmd))
+                {
+                    Logger::Instance().Log("Failed to send SetFPSCommand command");
+                }
+                Logger::Instance().Log("SetFPSCommand command sent");
+            });
+    }
+}
+
 bool WebCore::IsAnyInputActive() const
 {
     for (auto* view : webViews_)
