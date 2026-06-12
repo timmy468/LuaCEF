@@ -73,6 +73,10 @@ void Host::InitCef()
     settings.log_severity = LOGSEVERITY_DEBUG;
     settings.command_line_args_disabled = 1;
 
+#ifndef NDEBUG
+    settings.remote_debugging_port = 9222;
+#endif
+
     CefMainArgs args(GetModuleHandle(nullptr));
 
     CefInitialize(args, settings, nullptr, nullptr);
