@@ -380,8 +380,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 webView->SetFocused(inside);
             }
 
-            if (webView->IsEnabledFocusMode() && !webView->IsFocused())
-                continue;
+            auto consume = webView->IsEnabledFocusMode() && webView->IsFocused();
 
             ipc::MouseClickCmd cmd{};
             cmd.id = id;
@@ -427,13 +426,15 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         Logger::Instance().Log("Failed to send MouseClick command");
                     }
                 });
-            retval = true;
+
+            if (consume)
+                retval = true;
+
             continue;
         }
         else if (msg == WM_MOUSEWHEEL)
         {
-            if (webView->IsEnabledFocusMode() && !webView->IsFocused())
-                continue;
+            auto consume = webView->IsEnabledFocusMode() && webView->IsFocused();
 
             POINT point = {LOWORD(lParam), HIWORD(lParam)};
             ScreenToClient(hwnd, &point);
@@ -452,14 +453,16 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                         Logger::Instance().Log("Failed to send MouseWheel command");
                     }
                 });
-            retval = true;
+
+            if (consume)
+                retval = true;
+
             continue;
         }
 
-        if (msg >= WM_KEYDOWN && msg <= WM_CHAR)
+        if (msg >= WM_KEYDOWN && msg <= WM_SYSKEYUP)
         {
-            if (webView->IsEnabledFocusMode() && !webView->IsFocused())
-                continue;
+            auto consume = webView->IsEnabledFocusMode() && webView->IsFocused();
 
             int keycode = static_cast<int>(wParam);
             int modifiers = 0;
@@ -499,7 +502,8 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                     }
                 });
 
-            retval = true;
+            if (consume)
+                retval = true;
             continue;
         }
     }
