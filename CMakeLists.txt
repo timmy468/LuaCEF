@@ -7,10 +7,11 @@ add_compile_definitions(
 )
 
 set(CEF_ROOT "${CMAKE_SOURCE_DIR}/third_party/cef")
-set(CEF_RUNTIME_LIBRARY_FLAG
-    "/MD"
+set(CEF_RUNTIME_LIBRARY_FLAG   
+    /MD
     CACHE STRING ""
     FORCE)
+set(USE_SANDBOX OFF CACHE BOOL "")
 add_subdirectory(
     ${CEF_ROOT}
     ${CMAKE_BINARY_DIR}/cef
@@ -21,7 +22,8 @@ include_directories(
 )
 link_libraries(
     libcef_dll_wrapper
-    ${CEF_ROOT}/Release/libcef.lib
+    "$<$<CONFIG:Debug>:${CEF_ROOT}/Debug/libcef.lib>"
+    "$<$<CONFIG:Release>:${CEF_ROOT}/Release/libcef.lib>"
 )
 
 set(LUACEF_DEPLOY_DIR "${CMAKE_BINARY_DIR}/deploy")
@@ -59,12 +61,12 @@ add_dependencies(
 
 add_custom_command(TARGET DEPLOY POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CEF_ROOT}/Release"
+            "$<$<CONFIG:Debug>:${CEF_ROOT}/Debug>$<$<CONFIG:Release>:${CEF_ROOT}/Release>"
             "$<TARGET_FILE_DIR:LuaCEFHost>"
 
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CEF_ROOT}/Resources"
             "$<TARGET_FILE_DIR:LuaCEFHost>"
 
-    COMMENT "Copying CEF runtime files"
+    COMMENT "Copying CEF runtime files for $<CONFIG> configuration"
 )
