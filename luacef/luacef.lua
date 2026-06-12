@@ -51,13 +51,17 @@ ffi.cdef [[
     void LuaCEF_GoForward(RemoteWebView view);
 
     void LuaCEF_ExecuteJS(RemoteWebView view, const char* code);
+    void LuaCEF_SetFPS(RemoteWebView view, int fps);
 ]]
 
 if getModuleHandle("luacef.asi") == 0 then
     error("plugin not found")
 end
 
-local CEF_LIB = ffi.load("luacef.asi")
+local MODULE_ = {
+    _frames = {},
+    _lib = ffi.load("luacef.asi")
+}
 
 ---@class RemoteWebView
 local RemoteWebView = {}
@@ -92,9 +96,9 @@ function RemoteWebView:close()
 
     self._closed = true
 
-    CEF_LIB.LuaCEF_Close(self._frame)
+    MODULE_._lib.LuaCEF_Close(self._frame)
 
-    MODULE_.frames_[self._frame] = nil
+    MODULE_._frames[self._frame] = nil
 end
 
 ---Добавить callback, вызываемый после создания браузера.
@@ -109,7 +113,7 @@ function RemoteWebView:addOnAfterCreateCallback(cb)
 
     self:_storeCallback(callback)
 
-    CEF_LIB.LuaCEF_AddOnAfterCreateCallback(self._frame, callback)
+    MODULE_._lib.LuaCEF_AddOnAfterCreateCallback(self._frame, callback)
 end
 
 ---Добавить callback окончания загрузки страницы.
@@ -124,7 +128,7 @@ function RemoteWebView:addOnLoadingCallback(cb)
 
     self:_storeCallback(callback)
 
-    CEF_LIB.LuaCEF_AddOnLoadingCallback(self._frame, callback)
+    MODULE_._lib.LuaCEF_AddOnLoadingCallback(self._frame, callback)
 end
 
 ---Добавить callback закрытия браузера.
@@ -139,108 +143,108 @@ function RemoteWebView:addOnCloseCallback(cb)
 
     self:_storeCallback(callback)
 
-    CEF_LIB.LuaCEF_AddOnCloseCallback(self._frame, callback)
+    MODULE_._lib.LuaCEF_AddOnCloseCallback(self._frame, callback)
 end
 
 ---Получить Direct3D текстуру браузера.
 ---@return userdata texture
 function RemoteWebView:getTexture()
-    return CEF_LIB.LuaCEF_GetTexture(self._frame)
+    return MODULE_._lib.LuaCEF_GetTexture(self._frame)
 end
 
 ---Проверить активен ли ввод.
 ---@return boolean
 function RemoteWebView:isInputActive()
-    return CEF_LIB.LuaCEF_IsInputActive(self._frame)
+    return MODULE_._lib.LuaCEF_IsInputActive(self._frame)
 end
 
 ---Включить или выключить ввод.
 ---@param enable boolean
 function RemoteWebView:setInput(enable)
-    CEF_LIB.LuaCEF_SetInputActive(self._frame, enable)
+    MODULE_._lib.LuaCEF_SetInputActive(self._frame, enable)
 end
 
 ---Проверить активен ли ввод (в фокусе).
 ---Автоматически фокусируется при нажатии в области браузера.
 ---@return boolean
 function RemoteWebView:isFocused()
-    return CEF_LIB.LuaCEF_IsFocused(self._frame)
+    return MODULE_._lib.LuaCEF_IsFocused(self._frame)
 end
 
 ---Включить или выключить фокус.
 ---@param enable boolean
 function RemoteWebView:setFocused(enable)
-    CEF_LIB.LuaCEF_SetFocused(self._frame, enable)
+    MODULE_._lib.LuaCEF_SetFocused(self._frame, enable)
 end
 
 ---Включить режим фокусировки
 ---@param enable boolean
 function RemoteWebView:setEnabledFocusMode(enable)
-    CEF_LIB.LuaCEF_SetEnabledFocusMode(self._frame, enable)
+    MODULE_._lib.LuaCEF_SetEnabledFocusMode(self._frame, enable)
 end
 
 ---Проверить включен ли режим фокусировки
 ---@return boolean
 function RemoteWebView:isEnabledFocusMode()
-    return CEF_LIB.LuaCEF_IsEnabledFocusMode(self._frame)
+    return MODULE_._lib.LuaCEF_IsEnabledFocusMode(self._frame)
 end
 
 ---Включить или выключить рендеринг (вне OSR).
 ---@param enable boolean
 function RemoteWebView:setRenderEnabled(enable)
-    CEF_LIB.LuaCEF_SetRenderEnabled(self._frame, enable)
+    MODULE_._lib.LuaCEF_SetRenderEnabled(self._frame, enable)
 end
 
 ---Проверить включен ли рендеринг.
 ---@return boolean
 function RemoteWebView:isRenderEnabled()
-    return CEF_LIB.LuaCEF_IsRenderEnabled(self._frame)
+    return MODULE_._lib.LuaCEF_IsRenderEnabled(self._frame)
 end
 
 ---Включить или выключить offscreen rendering.
 ---@param enable boolean
 function RemoteWebView:setOffscreenRenderingEnabled(enable)
-    CEF_LIB.LuaCEF_SetOffscreenRenderingEnabled(self._frame, enable)
+    MODULE_._lib.LuaCEF_SetOffscreenRenderingEnabled(self._frame, enable)
 end
 
 ---Проверить используется ли offscreen rendering.
 ---@return boolean
 function RemoteWebView:isOffscreenRenderingEnabled()
-    return CEF_LIB.LuaCEF_IsOffscreenRenderingEnabled(self._frame)
+    return MODULE_._lib.LuaCEF_IsOffscreenRenderingEnabled(self._frame)
 end
 
 ---Получить текущий URL.
 ---@return string
 function RemoteWebView:getURL()
-    return ffi.string(CEF_LIB.LuaCEF_GetURL(self._frame))
+    return ffi.string(MODULE_._lib.LuaCEF_GetURL(self._frame))
 end
 
 ---Загрузить URL.
 ---@param url string
 function RemoteWebView:loadURL(url)
-    CEF_LIB.LuaCEF_LoadURL(self._frame, url)
+    MODULE_._lib.LuaCEF_LoadURL(self._frame, url)
 end
 
 ---Перезагрузить страницу.
 ---@param ignoreCache boolean
 function RemoteWebView:reloadPage(ignoreCache)
-    CEF_LIB.LuaCEF_ReloadPage(self._frame, ignoreCache)
+    MODULE_._lib.LuaCEF_ReloadPage(self._frame, ignoreCache)
 end
 
 ---Перейти назад.
 function RemoteWebView:goBack()
-    CEF_LIB.LuaCEF_GoBack(self._frame)
+    MODULE_._lib.LuaCEF_GoBack(self._frame)
 end
 
 ---Перейти вперед.
 function RemoteWebView:goForward()
-    CEF_LIB.LuaCEF_GoForward(self._frame)
+    MODULE_._lib.LuaCEF_GoForward(self._frame)
 end
 
 ---Выполнить JavaScript код.
 ---@param code string
 function RemoteWebView:executeJS(code)
-    CEF_LIB.LuaCEF_ExecuteJS(self._frame, code)
+    MODULE_._lib.LuaCEF_ExecuteJS(self._frame, code)
 end
 
 ---Зарегистрировать функцию для вызова из JavaScript.
@@ -282,16 +286,18 @@ function RemoteWebView:addBindFunction(name, cb)
 
     self:_storeCallback(callback)
 
-    CEF_LIB.LuaCEF_AddBindFunction(
+    MODULE_._lib.LuaCEF_AddBindFunction(
         self._frame,
         name,
         callback
     )
 end
 
-local MODULE_ = {
-    frames_ = {}
-}
+---Установить FPS для браузера.
+---@param fps integer
+function RemoteWebView:setFPS(fps)
+    MODULE_._lib.LuaCEF_SetFPS(self._frame, fps)
+end
 
 ---Версия библиотеки.
 ---@type string
@@ -300,13 +306,13 @@ MODULE_.VERSION = "1.0.0"
 ---Проверить инициализирован ли LuaCEF.
 ---@return boolean
 function MODULE_.inited()
-    return CEF_LIB.LuaCEF_IsInitialized()
+    return MODULE_._lib.LuaCEF_IsInitialized()
 end
 
 ---Проверить активен ли ввод хотя бы в одном браузере.
 ---@return boolean
 function MODULE_.isAnyInputActive()
-    return CEF_LIB.IsAnyInputActive()
+    return MODULE_._lib.IsAnyInputActive()
 end
 
 ---Создать браузер.
@@ -344,7 +350,7 @@ function MODULE_.create(url, x, y, width, height, cb)
         )
     end
 
-    local frame = CEF_LIB.LuaCEF_Create(
+    local frame = MODULE_._lib.LuaCEF_Create(
         url,
         x,
         y,
@@ -359,7 +365,7 @@ function MODULE_.create(url, x, y, width, height, cb)
         obj:_storeCallback(createCallback)
     end
 
-    MODULE_.frames_[frame] = obj
+    MODULE_._frames[frame] = obj
 
     return obj
 end
@@ -383,7 +389,7 @@ function MODULE_.createFullscreen(url, cb)
         )
     end
 
-    local frame = CEF_LIB.LuaCEF_CreateFullscreen(
+    local frame = MODULE_._lib.LuaCEF_CreateFullscreen(
         url,
         createCallback
     )
@@ -394,21 +400,21 @@ function MODULE_.createFullscreen(url, cb)
         obj:_storeCallback(createCallback)
     end
 
-    MODULE_.frames_[frame] = obj
+    MODULE_._frames[frame] = obj
 
     return obj
 end
 
 addEventHandler("onD3DPresent", function()
-    CEF_LIB.LuaCEF_Update()
+    MODULE_._lib.LuaCEF_Update()
 end)
 
 addEventHandler("onD3DDeviceLost", function()
-    CEF_LIB.LuaCEF_OnD3DLost()
+    MODULE_._lib.LuaCEF_OnD3DLost()
 end)
 
 addEventHandler("onD3DDeviceReset", function()
-    CEF_LIB.LuaCEF_OnD3DReset()
+    MODULE_._lib.LuaCEF_OnD3DReset()
 end)
 
 addEventHandler("onScriptTerminate", function(scr)
@@ -416,13 +422,13 @@ addEventHandler("onScriptTerminate", function(scr)
         return
     end
 
-    for _, obj in pairs(MODULE_.frames_) do
+    for _, obj in pairs(MODULE_._frames) do
         pcall(function()
             obj:close()
         end)
     end
 
-    MODULE_.frames_ = {}
+    MODULE_._frames = {}
 end)
 
 jit.off(_, false)

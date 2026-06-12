@@ -1,8 +1,13 @@
+---@diagnostic disable: undefined-global
+
 local luacef = require("luacef")
 local imgui = require("mimgui")
+local vkeys = require("vkeys")
+local windowsMessage = require("windows.message")
 
 local webView = nil
 local webView2 = nil
+local webView3 = nil
 
 function main()
     while not isSampAvailable() do
@@ -17,7 +22,7 @@ function main()
 
     webView = luacef.create(
         "file:///c:/Games/Advance Games/testcef/index.html", 500, 500, 500, 500, function(_)
-            sampAddChatMessage("WebView created!", 0x00FF00)
+            sampAddChatMessage("[1] WebView created!", 0x00FF00)
         end)
 
     webView:addBindFunction("test", function(_, args)
@@ -31,8 +36,9 @@ function main()
     end)
 
     webView:addOnLoadingCallback(function(_, httpStatusCode)
-        sampAddChatMessage("Loading status: " .. httpStatusCode, 0x00FF00)
+        sampAddChatMessage("[1] Loading status: " .. httpStatusCode, 0x00FF00)
         webView:setInput(true)
+        webView:setFPS(120)
         webView:executeJS([[document.getElementById("title").style.color = "red";]])
     end)
 
@@ -43,20 +49,33 @@ function main()
     -- "file:///C:/Users/egaaa/Videos/36094040.mp4"
 
     -- webView2 = luacef.create(
-    --     "https://threejs.org/examples/#webgl_loader_gltf", 0, 0, 500, 500, function(_)
-    --         sampAddChatMessage("WebView2 created!", 0x00FF00)
+    --     "https://music.wntn.ru", 0, 0, 500, 500, function(_)
+    --         sampAddChatMessage("[2] WebView created!", 0x00FF00)
     --         -- webView:loadURL("https://www.youtube.com/")
     --     end)
 
+
     -- webView2:addOnLoadingCallback(function(_, httpStatusCode)
-    --     webView:setInput(true)
-    --     sampAddChatMessage("Loading status: " .. httpStatusCode, 0x00FF00)
+    --     webView2:setInput(true)
+    --     webView2:setFPS(120)
+    --     sampAddChatMessage("[2] Loading status: " .. httpStatusCode, 0x00FF00)
     -- end)
+
+    webView3 = luacef.create(
+        "https://vk.com/video-34229261_456247422", 0, 0, 500, 500, function(_)
+            sampAddChatMessage("[2] WebView created!", 0x00FF00)
+            -- webView:loadURL("https://www.youtube.com/")
+        end)
+
+
+    webView3:addOnLoadingCallback(function(_, httpStatusCode)
+        webView3:setInput(true)
+        webView3:setFPS(120)
+        sampAddChatMessage("[2] Loading status: " .. httpStatusCode, 0x00FF00)
+    end)
 
     wait(-1)
 end
-
-local ffi = require("ffi")
 
 imgui.OnFrame(
     function() return true end,
@@ -73,3 +92,33 @@ imgui.OnFrame(
         end
     end
 ).HideCursor = true
+
+addEventHandler("onWindowMessage", function(msg, wparam, lparam)
+    if msg == windowsMessage.WM_KEYDOWN or msg == windowsMessage.WM_KEYUP then
+        if wparam == vkeys.VK_F9 then
+            if webView then
+                consumeWindowMessage(true, false)
+                if msg == windowsMessage.WM_KEYUP then
+                    -- webView:close()
+                    -- webView2:close()
+
+                    if webView:isRenderEnabled() then
+                        webView:setRenderEnabled(false)
+                        webView:setInput(false)
+                    else
+                        webView:setRenderEnabled(true)
+                        webView:setInput(true)
+                    end
+
+                    -- if webView2:isRenderEnabled() then
+                    --     webView2:setRenderEnabled(false)
+                    --     webView2:setInput(false)
+                    -- else
+                    --     webView2:setRenderEnabled(true)
+                    --     webView2:setInput(true)
+                    -- end
+                end
+            end
+        end
+    end
+end)
