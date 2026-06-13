@@ -21,9 +21,12 @@ function main()
     sampAddChatMessage("LuaCEF version: " .. luacef.VERSION, 0xFFFF00)
 
     webView = luacef.create(
-        "file:///c:/Games/Advance Games/testcef/index.html", 500, 500, 500, 500, function(_)
+        "http://localhost:5173/", 500, 500, 500, 500, function(_)
             sampAddChatMessage("[1] WebView created!", 0x00FF00)
         end)
+
+    webView:setEnabledFocusMode(false)
+    webView:setRenderEnabled(false)
 
     webView:addBindFunction("test", function(_, args)
         for k, v in pairs(args) do
@@ -37,9 +40,12 @@ function main()
 
     webView:addOnLoadingCallback(function(_, httpStatusCode)
         sampAddChatMessage("[1] Loading status: " .. httpStatusCode, 0x00FF00)
-        webView:setInput(true)
-        webView:setFPS(120)
-        webView:executeJS([[document.getElementById("title").style.color = "red";]])
+
+        if httpStatusCode == 20 then
+            webView:setInput(true)
+            webView:setFPS(120)
+            webView:executeJS([[document.getElementById("title").style.color = "red";]])
+        end
     end)
 
     -- webView:addOnCloseCallback(function(_)
@@ -61,18 +67,18 @@ function main()
     --     sampAddChatMessage("[2] Loading status: " .. httpStatusCode, 0x00FF00)
     -- end)
 
-    webView3 = luacef.create(
-        "https://vk.com/video-34229261_456247422", 0, 0, 500, 500, function(_)
-            sampAddChatMessage("[2] WebView created!", 0x00FF00)
-            -- webView:loadURL("https://www.youtube.com/")
-        end)
+    -- webView3 = luacef.create(
+    --     "http://192.168.0.197:5173/", 0, 0, 500, 500, function(_)
+    --         sampAddChatMessage("[3] WebView created!", 0x00FF00)
+    --         -- webView:loadURL("https://www.youtube.com/")
+    --     end)
 
 
-    webView3:addOnLoadingCallback(function(_, httpStatusCode)
-        webView3:setInput(true)
-        webView3:setFPS(120)
-        sampAddChatMessage("[2] Loading status: " .. httpStatusCode, 0x00FF00)
-    end)
+    -- webView3:addOnLoadingCallback(function(_, httpStatusCode)
+    --     webView3:setInput(true)
+    --     webView3:setFPS(120)
+    --     sampAddChatMessage("[3] Loading status: " .. httpStatusCode, 0x00FF00)
+    -- end)
 
     wait(-1)
 end

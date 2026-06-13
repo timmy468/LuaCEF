@@ -358,22 +358,6 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         break;
     }
 
-        // case ipc::CommandType::Ping:
-        // {
-        //     if (payloadSize != sizeof(ipc::PingCmd))
-        //         return;
-
-        //     auto* cmd = static_cast<const ipc::PingCmd*>(payload);
-
-        //     ipc::PongCmd pong{};
-
-        //     pong.timestamp = cmd->timestamp;
-
-        //     server_->SendToClient(pipe, ipc::CommandType::Pong, pong);
-
-        //     break;
-        // }
-
     case ipc::CommandType::MouseMove:
     {
         auto* cmd = static_cast<const ipc::MouseMoveCmd*>(payload);
@@ -386,7 +370,7 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
             if (auto browser = it->second->GetBrowser())
             {
                 CefPostTask(TID_UI, base::BindOnce(
-                                        [](CefRefPtr<CefBrowser> browser, int x, int y)
+                                        [](CefRefPtr<CefBrowser> browser, int x, int y, int modifiers)
                                         {
                                             if (auto host = browser->GetHost())
                                             {
@@ -394,12 +378,12 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
                                                 mouseEvent.x = x;
                                                 mouseEvent.y = y;
-                                                mouseEvent.modifiers = 0;
+                                                mouseEvent.modifiers = modifiers;
 
                                                 host->SendMouseMoveEvent(mouseEvent, false);
                                             }
                                         },
-                                        browser, cmd->x, cmd->y));
+                                        browser, cmd->x, cmd->y, cmd->modifiers));
             }
         }
 
