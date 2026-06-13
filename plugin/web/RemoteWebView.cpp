@@ -36,7 +36,8 @@ void RemoteWebView::AttachBrowser(DWORD parentPid)
     if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}_{}", parentPid, static_cast<uint32_t>(browserId_))))
     {
         frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
-        Logger::Instance().Log("SharedFrame: {:p} {} {}", (void*)frame_, frame_->header.width, frame_->header.height);
+        Logger::Instance().Log("SharedFrame: {:p} {} {}", (void*)frame_, frame_->header.width.load(),
+                               frame_->header.height.load());
     }
     else
     {

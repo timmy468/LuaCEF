@@ -19,7 +19,7 @@ bool ProcessManager::Start()
 {
     if (IsRunning())
     {
-        Logger::Instance().Log("Subprocess already running (PID: {})", process_id_);
+        Logger::Instance().Log("Subprocess already running (PID: {})", process_id_.load());
 
         return true;
     }
@@ -53,14 +53,14 @@ bool ProcessManager::Start()
         return false;
     }
 
-    Logger::Instance().Log("Subprocess created (PID: {}), cmdline: {}", process_id_, cmdLine);
+    Logger::Instance().Log("Subprocess created (PID: {}), cmdline: {}", process_id_.load(), cmdLine);
 
     process_handle_ = process_info.hProcess;
     process_id_ = process_info.dwProcessId;
 
     CloseHandle(process_info.hThread);
 
-    Logger::Instance().Log("Subprocess created (PID: {})", process_id_);
+    Logger::Instance().Log("Subprocess created (PID: {})", process_id_.load());
 
     monitor_running_ = true;
 
@@ -81,7 +81,7 @@ void ProcessManager::Stop()
     if (!process_handle_)
         return;
 
-    Logger::Instance().Log("Stopping subprocess (PID: {})", process_id_);
+    Logger::Instance().Log("Stopping subprocess (PID: {})", process_id_.load());
 
     DWORD exit_code{};
 
