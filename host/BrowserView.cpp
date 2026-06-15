@@ -127,8 +127,23 @@ void BrowserView::OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> f
         callback(this, httpStatusCode);
 }
 
+void BrowserView::OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode,
+                              const CefString& errorText, const CefString& failedUrl)
+{
+    Logger::Instance().Log("OnLoadError: code={} text={} url={}", static_cast<int>(errorCode), errorText.ToString(),
+                           failedUrl.ToString());
+}
+
 void BrowserView::OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& url)
 {
     for (auto& callback : onAddressChangeCallbacks_)
         callback(this, url);
+}
+
+bool BrowserView::OnConsoleMessage(CefRefPtr<CefBrowser>, cef_log_severity_t, const CefString& message,
+                                   const CefString& source, int line)
+{
+    Logger::Instance().Log("JS: {} ({}:{})", message.ToString().c_str(), source.ToString().c_str(), line);
+
+    return false;
 }

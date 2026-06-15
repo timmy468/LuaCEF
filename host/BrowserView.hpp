@@ -63,9 +63,13 @@ class BrowserView : public CefClient,
 
     // CefLoadHandler
     void OnLoadEnd(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, int httpStatusCode) override;
+    void OnLoadError(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, ErrorCode errorCode,
+                     const CefString& errorText, const CefString& failedUrl) override;
 
     // CefDisplayHandler
     void OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& url) override;
+    bool OnConsoleMessage(CefRefPtr<CefBrowser>, cef_log_severity_t, const CefString& message, const CefString& source,
+                          int line) override;
 
     // Export
     CefRefPtr<CefBrowser> GetBrowser() const
