@@ -42,6 +42,10 @@ bool BrowserView::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRef
 void BrowserView::OnPaint(CefRefPtr<CefBrowser>, PaintElementType, const RectList& dirtyRects, const void* buffer,
                           int width, int height)
 {
+#ifndef NDEBUG
+    Logger::Instance().Log("BrowserView::OnPaint() {:p} {:d} {:d}", (void*)this, width, height);
+#endif
+
     if (!frame_)
         return;
 

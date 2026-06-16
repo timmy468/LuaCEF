@@ -44,10 +44,7 @@ bool Host::Initialize(DWORD pid)
 
 void Host::Run()
 {
-    while (true)
-    {
-        Sleep(100);
-    }
+    Sleep(INFINITE);
 }
 
 void Host::InitCef()
@@ -94,30 +91,14 @@ void Host::ParentMonitorProc()
 {
     Logger::Instance().Log("Parent monitor started. PID={}", parentPid_);
 
-    while (parentMonitorThread_.running)
-    {
-        HANDLE process = OpenProcess(SYNCHRONIZE, FALSE, parentPid_);
+    HANDLE process = OpenProcess(SYNCHRONIZE, FALSE, parentPid_);
 
-        if (!process)
-        {
-            Logger::Instance().Log("Parent process not found");
+    if (!process)
+        ExitProcess(0);
 
-            break;
-        }
+    WaitForSingleObject(process, INFINITE);
 
-        DWORD result = WaitForSingleObject(process, 0);
-
-        CloseHandle(process);
-
-        if (result == WAIT_OBJECT_0)
-        {
-            Logger::Instance().Log("Parent process exited");
-
-            break;
-        }
-
-        Sleep(1000);
-    }
+    CloseHandle(process);
 
     Logger::Instance().Log("Host shutting down because parent died");
 

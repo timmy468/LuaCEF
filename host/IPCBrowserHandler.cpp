@@ -362,7 +362,9 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
     {
         auto* cmd = static_cast<const ipc::MouseMoveCmd*>(payload);
 
+#ifndef NDEBUG
         Logger::Instance().Log("MouseMove command received with id {}, x: {}, y: {}", cmd->id, cmd->x, cmd->y);
+#endif
 
         auto it = browsers_.find(cmd->id);
         if (it != browsers_.end())
