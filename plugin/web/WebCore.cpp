@@ -382,7 +382,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             if (point.x == mouseMove_.lastX && point.y == mouseMove_.lastY && cmd.modifiers == mouseMove_.lastModifiers)
             {
-                break;
+                continue;
             }
             mouseMove_.lastX = point.x;
             mouseMove_.lastY = point.y;
@@ -800,12 +800,17 @@ void WebCore::MessageReceiveThreadProc()
 
 void WebCore::ProcessGameThreadTasks()
 {
-    std::lock_guard lock(gameThreadTasks_.mutex);
-    for (auto& task : gameThreadTasks_.tasks)
+    std::vector<std::function<void()>> tasks;
+
+    {
+        std::lock_guard lock(gameThreadTasks_.mutex);
+        tasks.swap(gameThreadTasks_.tasks);
+    }
+
+    for (auto& task : tasks)
     {
         task();
     }
-    gameThreadTasks_.tasks.clear();
 
     if (mouseMove_.pending.exchange(false))
     {
@@ -829,14 +834,16 @@ void WebCore::AddTaskToGameThread(std::function<void()> task)
 
 void WebCore::ProcessMessageThreadTasks()
 {
-    std::lock_guard lock(messageThreadTasks_.mutex);
+    std::vector<std::function<void()>> tasks;
+    {
+        std::lock_guard lock(messageThreadTasks_.mutex);
+        tasks.swap(messageThreadTasks_.tasks);
+    }
 
-    for (auto& task : messageThreadTasks_.tasks)
+    for (auto& task : tasks)
     {
         task();
     }
-
-    messageThreadTasks_.tasks.clear();
 }
 
 void WebCore::AddTaskToMessageThread(std::function<void()> task)
