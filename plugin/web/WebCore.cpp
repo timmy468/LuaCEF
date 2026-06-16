@@ -795,7 +795,6 @@ void WebCore::MessageReceiveThreadProc()
             break;
         }
         }
-        Sleep(1);
     }
 }
 
