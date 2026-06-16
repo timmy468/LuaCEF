@@ -26,8 +26,8 @@ void WebCore::Initialize(IDirect3DDevice9* device, std::shared_ptr<IRenderManage
     const auto currentProcessId = GetCurrentProcessId();
     auto pipeName = std::format(R"(\\.\pipe\LuaCEF_IPC_{})", currentProcessId);
 
-    // Подождать пока subprocess инициализируется (max 5 секунд)
-    for (int i = 0; i < 50; ++i)
+    // Подождать пока subprocess инициализируется (max 7 секунд)
+    for (int i = 0; i < 70; ++i)
     {
         Sleep(100);
 
@@ -68,7 +68,6 @@ void WebCore::Shutdown()
     }
 
     webViews_.clear();
-    webviewIdMap_.clear();
 
     ipcClient_.reset();
 
@@ -87,7 +86,6 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
     cmd.id = nextBrowserId_++;
     cmd.x = x;
     cmd.y = y;
-
     cmd.width = w;
     cmd.height = h;
 
@@ -95,8 +93,6 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
 
     auto* webView = new RemoteWebView(ipcClient_, renderManager_, cmd.id, device_, x, y, w, h, onCreate);
     webViews_.push_back(webView);
-
-    webviewIdMap_[cmd.id] = webView;
 
     AddTaskToMessageThread(
         [this, cmd]()
@@ -359,7 +355,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         AddTaskToMessageThread([this, cmd] { ipcClient_->Send(ipc::CommandType::Pause, cmd); });
     }
 
-    for (auto& [id, webView] : webviewIdMap_)
+    for (auto& webView : webViews_)
     {
         if (webView->IsClosing())
             continue;
@@ -370,7 +366,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             ScreenToClient(hwnd, &point);
 
             ipc::MouseMoveCmd cmd{};
-            cmd.id = id;
+            cmd.id = webView->GetBrowserId();
             cmd.x = point.x - webView->GetX();
             cmd.y = point.y - webView->GetY();
             cmd.modifiers = 0;
@@ -419,7 +415,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             auto consume = webView->IsEnabledFocusMode() && webView->IsFocused();
 
             ipc::MouseClickCmd cmd{};
-            cmd.id = id;
+            cmd.id = webView->GetBrowserId();
             cmd.x = point.x - webView->GetX();
             cmd.y = point.y - webView->GetY();
 
@@ -476,7 +472,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             ScreenToClient(hwnd, &point);
 
             ipc::MouseWheelCmd cmd{};
-            cmd.id = id;
+            cmd.id = webView->GetBrowserId();
             cmd.x = point.x - webView->GetX();
             cmd.y = point.y - webView->GetY();
             cmd.delta = GET_WHEEL_DELTA_WPARAM(wParam);
@@ -511,7 +507,7 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 modifiers |= EVENTFLAG_ALT_DOWN;
 
             ipc::KeyCmd cmd{};
-            cmd.id = id;
+            cmd.id = webView->GetBrowserId();
             cmd.keycode = keycode;
             cmd.nativeKeycode = static_cast<int>(lParam);
             cmd.modifiers = modifiers;
@@ -611,10 +607,12 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId]()
                 {
-                    auto it = webviewIdMap_.find(browserId);
-                    if (it != webviewIdMap_.end())
+                    auto it = std::find_if(webViews_.begin(), webViews_.end(),
+                                           [browserId](auto& view) { return view->GetBrowserId() == browserId; });
+
+                    if (it != webViews_.end())
                     {
-                        it->second->AttachBrowser(GetCurrentProcessId());
+                        (*it)->AttachBrowser(GetCurrentProcessId());
                     }
                 });
 
@@ -644,18 +642,14 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId]()
                 {
-                    auto it = webviewIdMap_.find(browserId);
-
-                    if (it != webviewIdMap_.end())
+                    auto it = std::find_if(webViews_.begin(), webViews_.end(),
+                                           [browserId](auto& view) { return view->GetBrowserId() == browserId; });
+                    if (it != webViews_.end())
                     {
-                        auto* view = it->second;
-
+                        auto* view = *it;
                         view->OnClose();
 
                         webViews_.erase(std::remove(webViews_.begin(), webViews_.end(), view), webViews_.end());
-
-                        webviewIdMap_.erase(it);
-
                         delete view;
                     }
                 });
@@ -686,10 +680,11 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId, response]()
                 {
-                    auto it = webviewIdMap_.find(browserId);
-                    if (it != webviewIdMap_.end())
+                    auto it = std::find_if(webViews_.begin(), webViews_.end(),
+                                           [browserId](auto& view) { return view->GetBrowserId() == browserId; });
+                    if (it != webViews_.end())
                     {
-                        it->second->OnLoading(response.httpStatusCode);
+                        (*it)->OnLoading(response.httpStatusCode);
                     }
                 });
 
@@ -719,10 +714,11 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId]()
                 {
-                    auto it = webviewIdMap_.find(browserId);
-                    if (it != webviewIdMap_.end())
+                    auto it = std::find_if(webViews_.begin(), webViews_.end(),
+                                           [browserId](auto& view) { return view->GetBrowserId() == browserId; });
+                    if (it != webViews_.end())
                     {
-                        it->second->OnAfterCreate();
+                        (*it)->OnAfterCreate();
                     }
                 });
 
@@ -753,10 +749,11 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId, url]()
                 {
-                    auto it = webviewIdMap_.find(browserId);
-                    if (it != webviewIdMap_.end())
+                    auto it = std::find_if(webViews_.begin(), webViews_.end(),
+                                           [browserId](auto& view) { return view->GetBrowserId() == browserId; });
+                    if (it != webViews_.end())
                     {
-                        it->second->OnURLChanged(url);
+                        (*it)->OnURLChanged(url);
                     }
                 });
 
@@ -788,10 +785,11 @@ void WebCore::MessageReceiveThreadProc()
             AddTaskToGameThread(
                 [this, browserId, function, args]()
                 {
-                    auto it = webviewIdMap_.find(browserId);
-                    if (it != webviewIdMap_.end())
+                    auto it = std::find_if(webViews_.begin(), webViews_.end(),
+                                           [browserId](auto& view) { return view->GetBrowserId() == browserId; });
+                    if (it != webViews_.end())
                     {
-                        it->second->OnBindFunctionCall(function, args);
+                        (*it)->OnBindFunctionCall(function, args);
                     }
                 });
 
@@ -800,13 +798,6 @@ void WebCore::MessageReceiveThreadProc()
 
         default:
         {
-            // std::array<uint8_t, 8192> dummy{};
-
-            // if (header.payloadSize)
-            // {
-            //     ipcClient_->ReceiveRaw(dummy.data(), header.payloadSize);
-            // }
-
             break;
         }
         }

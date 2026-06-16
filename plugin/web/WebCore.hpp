@@ -50,7 +50,6 @@ class WebCore
     IDirect3DDevice9* device_{};
 
     std::vector<RemoteWebView*> webViews_;
-    std::map<RemoteWebView::BrowserId, RemoteWebView*> webviewIdMap_; // Маппинг ID из subprocess к локальным объектам
 
     std::shared_ptr<ipc::IPCClient> ipcClient_;
     std::unique_ptr<ProcessManager> processManager_;
