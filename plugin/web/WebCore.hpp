@@ -56,6 +56,13 @@ class WebCore
     std::shared_ptr<IRenderManager> renderManager_;
     std::atomic_uint32_t nextBrowserId_{1};
 
+    struct
+    {
+        ipc::MouseMoveCmd lastCmd;
+        std::mutex mutex;
+        std::atomic_bool pending{false};
+    } mouseMove_;
+
     bool messageThreadRunning_{false};
     std::thread messageThread_;
 

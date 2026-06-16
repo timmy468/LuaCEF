@@ -339,20 +339,17 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
         const auto gameActive = wParam != 0;
 
-        // // fix for games that don't have cursor
-        // if (gameActive)
-        // {
-        //     if (IsAnyInputActive())
-        //     {
-
-        //         Logger::Instance().Log("ShowCursor(true)");
-        //     }
-        // }
-
         ipc::PauseCmd cmd{};
         cmd.paused = !gameActive;
 
         AddTaskToMessageThread([this, cmd] { ipcClient_->Send(ipc::CommandType::Pause, cmd); });
+    }
+
+    POINT point{};
+    if (msg == WM_MOUSEMOVE || (msg >= WM_LBUTTONDOWN && msg <= WM_MBUTTONUP) || msg == WM_MOUSEWHEEL)
+    {
+        point = {LOWORD(lParam), HIWORD(lParam)};
+        ScreenToClient(hwnd, &point);
     }
 
     for (auto& webView : webViews_)
@@ -362,9 +359,6 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         if (msg == WM_MOUSEMOVE)
         {
-            POINT point = {LOWORD(lParam), HIWORD(lParam)};
-            ScreenToClient(hwnd, &point);
-
             ipc::MouseMoveCmd cmd{};
             cmd.id = webView->GetBrowserId();
             cmd.x = point.x - webView->GetX();
@@ -386,29 +380,21 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (GetKeyState(VK_CONTROL) & 0x8000)
                 cmd.modifiers |= EVENTFLAG_CONTROL_DOWN;
 
-            AddTaskToMessageThread(
-                [this, cmd]()
-                {
-                    if (!ipcClient_->Send(ipc::CommandType::MouseMove, cmd))
-                    {
-                        Logger::Instance().Log("Failed to send MouseMove command");
-                    }
-                });
+            {
+                std::lock_guard lock(mouseMove_.mutex);
+
+                mouseMove_.lastCmd = cmd;
+            }
+            mouseMove_.pending.store(true, std::memory_order_release);
 
             continue;
         }
         else if (msg >= WM_LBUTTONDOWN && msg <= WM_MBUTTONUP)
         {
-            POINT point = {LOWORD(lParam), HIWORD(lParam)};
-            ScreenToClient(hwnd, &point);
-
             {
-                POINT p;
-                GetCursorPos(&p);
-                ScreenToClient(hwnd, &p);
+                bool inside = point.x >= webView->GetX() && point.x < webView->GetX() + webView->GetWidth() &&
+                              point.y >= webView->GetY() && point.y < webView->GetY() + webView->GetHeight();
 
-                bool inside = p.x >= webView->GetX() && p.x < webView->GetX() + webView->GetWidth() &&
-                              p.y >= webView->GetY() && p.y < webView->GetY() + webView->GetHeight();
                 webView->SetFocused(inside);
             }
 
@@ -467,9 +453,6 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         else if (msg == WM_MOUSEWHEEL)
         {
             auto consume = webView->IsEnabledFocusMode() && webView->IsFocused();
-
-            POINT point = {LOWORD(lParam), HIWORD(lParam)};
-            ScreenToClient(hwnd, &point);
 
             ipc::MouseWheelCmd cmd{};
             cmd.id = webView->GetBrowserId();
@@ -572,7 +555,10 @@ void WebCore::MessageReceiveThreadProc()
         ProcessMessageThreadTasks();
 
         if (!ipcClient_->HasData())
+        {
+            Sleep(1);
             continue;
+        }
 
         ipc::MessageHeader header{};
 
@@ -808,13 +794,23 @@ void WebCore::MessageReceiveThreadProc()
 void WebCore::ProcessGameThreadTasks()
 {
     std::lock_guard lock(gameThreadTasks_.mutex);
-
     for (auto& task : gameThreadTasks_.tasks)
     {
         task();
     }
-
     gameThreadTasks_.tasks.clear();
+
+    if (mouseMove_.pending.exchange(false))
+    {
+        ipc::MouseMoveCmd cmd;
+
+        {
+            std::lock_guard lock(mouseMove_.mutex);
+            cmd = mouseMove_.lastCmd;
+        }
+
+        ipcClient_->Send(ipc::CommandType::MouseMove, cmd);
+    }
 }
 
 void WebCore::AddTaskToGameThread(std::function<void()> task)

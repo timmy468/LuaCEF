@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <kthook/kthook.hpp>
 #include <plugintmplt/plugintmplt.hpp>
 
 #include "render/IRenderManager.hpp"
@@ -12,6 +13,10 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
   private:
     std::shared_ptr<WebCore> webCore_;
     std::shared_ptr<IRenderManager> renderManager_;
+
+    using WndProc_t = LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM);
+    using WndProcHook = kthook::kthook_simple<WndProc_t>;
+    std::unique_ptr<WndProcHook> wndProcHook_;
 
   public:
     void OnAttach(void* handle);
@@ -34,6 +39,7 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
 
   private:
     void InstallGameHooks();
+    void InstallWndProcHook(uintptr_t address);
 
     void OnRenderInit();
     void OnGameInit();

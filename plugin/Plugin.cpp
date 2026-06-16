@@ -1,5 +1,6 @@
 #include "Plugin.hpp"
 
+#include <chrono>
 #include <iostream>
 
 #include <kthook/kthook.hpp>
@@ -9,8 +10,6 @@
 #include "render/RenderManager.hpp"
 
 #include "utils/samp_utils.hpp"
-
-using WndProc_t = LRESULT(CALLBACK*)(HWND, UINT, WPARAM, LPARAM);
 
 void Plugin::OnAttach(void* handle)
 {
@@ -32,17 +31,18 @@ void Plugin::OnDetach()
     Logger::Instance().Log("Plugin detached.");
 }
 
-void Plugin::InstallGameHooks()
+void Plugin::InstallWndProcHook(uintptr_t address)
 {
-    static kthook::kthook_simple<WndProc_t> wndProcHook(samp_utils::GetWndProcHookAddress(),
-                                                        [this](auto& hook, auto&&... args) -> LRESULT
-                                                        {
-                                                            if (OnWndProc(std::forward<decltype(args)>(args)...))
-                                                                return 1;
+    wndProcHook_ = std::make_unique<WndProcHook>(address,
+                                                 [this](auto& hook, auto&&... args) -> LRESULT
+                                                 {
+                                                     if (OnWndProc(std::forward<decltype(args)>(args)...))
+                                                         return 1;
 
-                                                            return hook.call_trampoline(
-                                                                std::forward<decltype(args)>(args)...);
-                                                        });
+                                                     return hook.call_trampoline(std::forward<decltype(args)>(args)...);
+                                                 });
+
+    Logger::Instance().Log("WndProc changed");
 }
 
 bool Plugin::IsInitialized() const
@@ -92,10 +92,6 @@ void Plugin::OnRenderInit()
     Logger::Instance().Log("Initializing WebCore...");
     webCore_->Initialize(GetD3DDevice(), renderManager_);
     Logger::Instance().Log("WebCore initialized.");
-
-    Logger::Instance().Log("Installing game hooks...");
-    InstallGameHooks();
-    Logger::Instance().Log("Game hooks installed.");
 }
 
 void Plugin::OnD3DLost()
@@ -126,6 +122,20 @@ void Plugin::Update()
         return;
 
     webCore_->Update();
+
+    static std::chrono::steady_clock::time_point lastTime;
+    const auto currentTime = std::chrono::steady_clock::now();
+    if (currentTime - lastTime < std::chrono::seconds(1))
+        return;
+
+    lastTime = currentTime;
+
+    static auto lastWndProcAddr = 0;
+    if (lastWndProcAddr != GetWindowLongPtr(RsGlobal.ps->window, GWLP_WNDPROC))
+    {
+        lastWndProcAddr = GetWindowLongPtrW(RsGlobal.ps->window, GWLP_WNDPROC);
+        InstallWndProcHook(lastWndProcAddr);
+    }
 }
 
 bool Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
