@@ -6,7 +6,7 @@
 namespace ipc
 {
 
-SharedMemory::SharedMemory() : handle_(nullptr), buffer_ptr_(nullptr)
+SharedMemory::SharedMemory() : handle_(nullptr), buffer_ptr_(nullptr), size_(0)
 {
 }
 
@@ -15,16 +15,15 @@ SharedMemory::~SharedMemory()
     Close();
 }
 
-bool SharedMemory::Create(const std::string& name)
+bool SharedMemory::Create(const std::string& name, uint32_t width, uint32_t height)
 {
     name_ = name;
 
+    size_ = CalculateSharedMemorySize(width, height);
+
     // Создать файл в памяти для shared memory
-    handle_ = CreateFileMappingA(INVALID_HANDLE_VALUE, // Использовать системный page file
-                                 nullptr, PAGE_READWRITE,
-                                 0,                   // High order размер
-                                 sizeof(SharedFrame), // Low order размер
-                                 name_.c_str());
+    handle_ =
+        CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<DWORD>(size_), name.c_str());
 
     if (handle_ == nullptr)
     {
@@ -33,7 +32,7 @@ bool SharedMemory::Create(const std::string& name)
     }
 
     // Отобразить в адресное пространство
-    buffer_ptr_ = MapViewOfFile(handle_, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SharedFrame));
+    buffer_ptr_ = MapViewOfFile(handle_, FILE_MAP_ALL_ACCESS, 0, 0, size_);
 
     if (buffer_ptr_ == nullptr)
     {
@@ -43,14 +42,16 @@ bool SharedMemory::Create(const std::string& name)
         return false;
     }
 
-    Logger::Instance().Log("Shared memory created: {} ({} MB)", name_, sizeof(SharedFrame) / (1024 * 1024));
+    Logger::Instance().Log("Shared memory created: {} ({:.2f} MB)", name_,
+                           static_cast<float>(size_) / (1024.0f * 1024.0f));
 
     return true;
 }
 
-bool SharedMemory::Open(const std::string& name)
+bool SharedMemory::Open(const std::string& name, uint32_t width, uint32_t height)
 {
     name_ = name;
+    size_ = CalculateSharedMemorySize(width, height);
 
     // Открыть существующий файл в памяти
     handle_ = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, name_.c_str());
@@ -62,7 +63,7 @@ bool SharedMemory::Open(const std::string& name)
     }
 
     // Отобразить в адресное пространство
-    buffer_ptr_ = MapViewOfFile(handle_, FILE_MAP_ALL_ACCESS, 0, 0, sizeof(SharedFrame));
+    buffer_ptr_ = MapViewOfFile(handle_, FILE_MAP_ALL_ACCESS, 0, 0, size_);
 
     if (buffer_ptr_ == nullptr)
     {
@@ -72,7 +73,8 @@ bool SharedMemory::Open(const std::string& name)
         return false;
     }
 
-    Logger::Instance().Log("Shared memory opened: {} ({} MB)", name_, sizeof(SharedFrame) / (1024 * 1024));
+    Logger::Instance().Log("Shared memory opened: {} ({:.2f} MB), width: {}, height: {}", name_,
+                           static_cast<float>(size_) / (1024.0f * 1024.0f), width, height);
     return true;
 }
 

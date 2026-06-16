@@ -23,15 +23,14 @@ struct FrameHeader
     std::atomic_uint32_t dirtyRectCount{};
 };
 
-// todo: move to config
-constexpr uint32_t MAX_WIDTH = 1920;
-constexpr uint32_t MAX_HEIGHT = 1080;
-
 struct SharedFrame
 {
     FrameHeader header;
 
     DirtyRect dirtyRects[MAX_DIRTY_RECTS];
 
-    uint8_t pixels[MAX_WIDTH * MAX_HEIGHT * 4];
+    inline uint8_t* GetPixelBuffer()
+    {
+        return reinterpret_cast<uint8_t*>(reinterpret_cast<char*>(this) + sizeof(SharedFrame));
+    }
 };

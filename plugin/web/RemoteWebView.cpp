@@ -33,7 +33,8 @@ void RemoteWebView::AttachBrowser(DWORD parentPid)
     if (closing_)
         return;
 
-    if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}_{}", parentPid, static_cast<uint32_t>(browserId_))))
+    if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}_{}", parentPid, static_cast<uint32_t>(browserId_)),
+                           width_, height_))
     {
         frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
         Logger::Instance().Log("SharedFrame: {:p} {} {}", (void*)frame_, frame_->header.width.load(),
@@ -163,7 +164,7 @@ bool RemoteWebView::UploadTexture(uint32_t expectedSeq)
 
     const uint32_t height = frame_->header.height.load(std::memory_order_relaxed);
 
-    if (width == 0 || height == 0 || width > MAX_WIDTH || height > MAX_HEIGHT)
+    if (width == 0 || height == 0 || width > width_ || height > height_)
     {
         return false;
     }
@@ -187,7 +188,7 @@ bool RemoteWebView::UploadTexture(uint32_t expectedSeq)
     if (dirtyCount == 0)
         return true;
 
-    const uint8_t* src = frame_->pixels;
+    const uint8_t* src = frame_->GetPixelBuffer();
 
     for (uint32_t i = 0; i < dirtyCount; ++i)
     {
@@ -250,7 +251,7 @@ bool RemoteWebView::RestoreTextureFromSharedMemory()
 
         const uint32_t height = frame_->header.height.load(std::memory_order_relaxed);
 
-        if (width == 0 || height == 0 || width > MAX_WIDTH || height > MAX_HEIGHT)
+        if (width == 0 || height == 0 || width > frame_->header.width || height > frame_->header.height)
         {
             return false;
         }
@@ -260,7 +261,7 @@ bool RemoteWebView::RestoreTextureFromSharedMemory()
         if (FAILED(texture_->LockRect(0, &rect, nullptr, 0)))
             return false;
 
-        const uint8_t* src = frame_->pixels;
+        const uint8_t* src = frame_->GetPixelBuffer();
         auto* dst = static_cast<uint8_t*>(rect.pBits);
 
         for (uint32_t y = 0; y < height; ++y)

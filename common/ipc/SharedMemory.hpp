@@ -17,10 +17,10 @@ class SharedMemory
     ~SharedMemory();
 
     // Создать shared memory (сервер)
-    bool Create(const std::string& name = "LuaCEF_SharedMemory");
+    bool Create(const std::string& name, uint32_t width, uint32_t height);
 
     // Открыть существующую shared memory (клиент)
-    bool Open(const std::string& name = "LuaCEF_SharedMemory");
+    bool Open(const std::string& name, uint32_t width, uint32_t height);
 
     // Закрыть
     void Close();
@@ -34,7 +34,7 @@ class SharedMemory
     // Получить размер
     size_t GetSize() const
     {
-        return sizeof(SharedFrame);
+        return size_;
     }
 
     // Проверить открыто ли
@@ -43,10 +43,16 @@ class SharedMemory
         return handle_ != nullptr;
     }
 
+    static size_t CalculateSharedMemorySize(uint32_t width, uint32_t height)
+    {
+        return sizeof(SharedFrame) + static_cast<size_t>(width) * static_cast<size_t>(height) * 4;
+    }
+
   private:
     HANDLE handle_;
     void* buffer_ptr_;
     std::string name_;
+    size_t size_;
 };
 
 } // namespace ipc
