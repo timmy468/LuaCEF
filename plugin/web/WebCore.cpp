@@ -380,6 +380,14 @@ bool WebCore::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (GetKeyState(VK_CONTROL) & 0x8000)
                 cmd.modifiers |= EVENTFLAG_CONTROL_DOWN;
 
+            if (point.x == mouseMove_.lastX && point.y == mouseMove_.lastY && cmd.modifiers == mouseMove_.lastModifiers)
+            {
+                break;
+            }
+            mouseMove_.lastX = point.x;
+            mouseMove_.lastY = point.y;
+            mouseMove_.lastModifiers = cmd.modifiers;
+
             {
                 std::lock_guard lock(mouseMove_.mutex);
 
@@ -787,7 +795,7 @@ void WebCore::MessageReceiveThreadProc()
             break;
         }
         }
-        Sleep(10);
+        Sleep(1);
     }
 }
 

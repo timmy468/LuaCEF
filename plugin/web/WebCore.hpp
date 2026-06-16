@@ -61,6 +61,10 @@ class WebCore
         ipc::MouseMoveCmd lastCmd;
         std::mutex mutex;
         std::atomic_bool pending{false};
+
+        int lastX = -1;
+        int lastY = -1;
+        int lastModifiers = -1;
     } mouseMove_;
 
     bool messageThreadRunning_{false};
