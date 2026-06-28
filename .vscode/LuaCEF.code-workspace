@@ -4,5 +4,7 @@
 			"path": ".."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"cmake.configureArgs": ["-DCMAKE_POLICY_VERSION_MINIMUM=3.5"]
+	}
 }
