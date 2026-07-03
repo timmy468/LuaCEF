@@ -332,4 +332,15 @@ extern "C"
 
         Plugin::GetInstance().GetWebCore()->SetFPS(view, fps);
     }
+
+    API_EXPORT void LuaCEF_ClearCallbacks(RemoteWebView* view)
+    {
+        if (!Plugin::GetInstance().IsInitialized())
+            return;
+
+        if (!view)
+            return;
+
+        view->ClearCallbacks();
+    }
 }

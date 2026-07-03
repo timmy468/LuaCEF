@@ -27,8 +27,8 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         Logger::Instance().Log("IPC CreateWebView {}", cmd->url);
 
-        auto browser =
-            CefRefPtr<BrowserView>(new BrowserView(parentPid_, cmd->id, cmd->x, cmd->y, cmd->width, cmd->height));
+        auto browser = CefRefPtr<BrowserView>(
+            new BrowserView(parentPid_, cmd->id, cmd->x, cmd->y, cmd->width, cmd->height, cmd->parentWindow));
         browser->AddOnCreateCallback(
             [this, pipe](BrowserView* browser)
             {

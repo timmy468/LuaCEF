@@ -89,6 +89,15 @@ void RemoteWebView::OnBindFunctionCall(const std::string& function, const std::s
     }
 }
 
+void RemoteWebView::ClearCallbacks()
+{
+    onAfterCreateCallbacks_.clear();
+    onLoadingCallbacks_.clear();
+    onCloseCallbacks_.clear();
+    bindFunctions_.clear();
+    Logger::Instance().Log("Cleared all callbacks for browser with id {}", browserId_);
+}
+
 void RemoteWebView::Close()
 {
     closing_ = true;

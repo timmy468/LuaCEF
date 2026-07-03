@@ -128,6 +128,8 @@ void Plugin::Update()
     if (currentTime - lastTime < std::chrono::seconds(1))
         return;
 
+    Logger::Instance().Log("Update with time");
+
     lastTime = currentTime;
 
     static auto lastWndProcAddr = 0;

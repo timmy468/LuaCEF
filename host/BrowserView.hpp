@@ -11,7 +11,8 @@ class BrowserView : public CefClient,
                     public CefRenderHandler,
                     public CefLifeSpanHandler,
                     public CefLoadHandler,
-                    public CefDisplayHandler
+                    public CefDisplayHandler,
+                    public CefDialogHandler
 {
   public:
     using ViewCallback = std::function<void(BrowserView*)>;
@@ -20,7 +21,7 @@ class BrowserView : public CefClient,
     using LuaCallback = std::function<void(BrowserView*, const CefString&, const CefString&)>;
 
   public:
-    BrowserView(DWORD parentPid, uint32_t id, int x, int y, int width, int height);
+    BrowserView(DWORD parentPid, uint32_t id, int x, int y, int width, int height, uintptr_t parentWindow);
 
     // CefClient
     CefRefPtr<CefRenderHandler> GetRenderHandler() override
@@ -70,6 +71,13 @@ class BrowserView : public CefClient,
     void OnAddressChange(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, const CefString& url) override;
     bool OnConsoleMessage(CefRefPtr<CefBrowser>, cef_log_severity_t, const CefString& message, const CefString& source,
                           int line) override;
+
+    // CefDialogHandler
+    bool OnFileDialog(CefRefPtr<CefBrowser> browser, FileDialogMode mode, const CefString& title,
+                      const CefString& default_file_path, const std::vector<CefString>& accept_filters,
+                      const std::vector<CefString>& accept_extensions,
+                      const std::vector<CefString>& accept_descriptions,
+                      CefRefPtr<CefFileDialogCallback> callback) override;
 
     // Export
     CefRefPtr<CefBrowser> GetBrowser() const
@@ -124,6 +132,7 @@ class BrowserView : public CefClient,
     int y_;
     int width_;
     int height_;
+    uintptr_t parentWindow_;
 
     SharedFrame* frame_;
     ipc::SharedMemory sharedMemory_;

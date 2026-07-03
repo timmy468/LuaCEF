@@ -52,6 +52,8 @@ ffi.cdef [[
 
     void LuaCEF_ExecuteJS(RemoteWebView view, const char* code);
     void LuaCEF_SetFPS(RemoteWebView view, int fps);
+
+    void LuaCEF_ClearCallbacks(RemoteWebView view);
 ]]
 
 if getModuleHandle("luacef.asi") == 0 then
@@ -299,6 +301,12 @@ function RemoteWebView:setFPS(fps)
     MODULE_._lib.LuaCEF_SetFPS(self._frame, fps)
 end
 
+---Очистить все callback'и браузера.
+function RemoteWebView:clearCallbacks()
+    MODULE_._lib.LuaCEF_ClearCallbacks(self._frame)
+    self._callbacks = {}
+end
+
 ---Версия библиотеки.
 ---@type string
 MODULE_.VERSION = "1.0.0"
@@ -424,6 +432,7 @@ addEventHandler("onScriptTerminate", function(scr)
 
     for _, obj in pairs(MODULE_._frames) do
         pcall(function()
+            obj:clearCallbacks()
             obj:close()
         end)
     end

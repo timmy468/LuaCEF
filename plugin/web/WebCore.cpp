@@ -88,6 +88,7 @@ RemoteWebView* WebCore::Create(const std::string& url, int x, int y, int w, int 
     cmd.y = y;
     cmd.width = w;
     cmd.height = h;
+    cmd.parentWindow = (uintptr_t)RsGlobal.ps->window;
 
     strcpy_s(cmd.url, sizeof(cmd.url), url.c_str());
 

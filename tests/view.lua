@@ -20,6 +20,9 @@ function main()
 
     sampAddChatMessage("LuaCEF version: " .. luacef.VERSION, 0xFFFF00)
 
+    local w, h = getScreenResolution()
+    local notificationW = 300
+    local notificationY = 
     webView = luacef.create(
         "http://localhost:5173/", 500, 500, 500, 500, function(_)
             sampAddChatMessage("[1] WebView created!", 0x00FF00)
@@ -87,10 +90,13 @@ imgui.OnFrame(
     function() return true end,
     function(player)
         if webView ~= nil then
-            -- local w, h = getScreenResolution()
-            -- local texture = webView:getTexture()
-            -- imgui.GetBackgroundDrawList():AddImage(texture, imgui.ImVec2(500, 500),
-            --     imgui.ImVec2(500, 500) + imgui.ImVec2(500, 500))
+            local w, h = getScreenResolution()
+            local viewW, viewH = 500, 100
+            local paddingX, paddingY = 30, 30
+            local start = imgui.ImVec2(w - paddingX - viewW, h - paddingY - viewH)
+            local texture = webView:getTexture()
+            imgui.GetBackgroundDrawList():AddImage(texture, start,
+                start + imgui.ImVec2(viewW, viewH))
 
             -- local texture2 = webView2:getTexture()
             -- imgui.GetBackgroundDrawList():AddImage(texture2, imgui.ImVec2(0, 0),
@@ -108,13 +114,13 @@ addEventHandler("onWindowMessage", function(msg, wparam, lparam)
                     -- webView:close()
                     -- webView2:close()
 
-                    if webView:isRenderEnabled() then
-                        webView:setRenderEnabled(false)
-                        webView:setInput(false)
-                    else
-                        webView:setRenderEnabled(true)
-                        webView:setInput(true)
-                    end
+                    -- if webView:isRenderEnabled() then
+                    --     webView:setRenderEnabled(false)
+                    --     webView:setInput(false)
+                    -- else
+                    --     webView:setRenderEnabled(true)
+                    --     webView:setInput(true)
+                    -- end
 
                     -- if webView2:isRenderEnabled() then
                     --     webView2:setRenderEnabled(false)

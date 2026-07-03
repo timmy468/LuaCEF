@@ -56,6 +56,8 @@ class RemoteWebView
         bindFunctions_[name] = callback;
     }
 
+    void ClearCallbacks();
+
     void Close();
     void AttachBrowser(DWORD parentPid);
 

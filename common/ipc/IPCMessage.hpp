@@ -47,6 +47,8 @@ struct CreateWebViewCmd
     int32_t width;
     int32_t height;
 
+    uintptr_t parentWindow;
+
     char url[512];
 };
 

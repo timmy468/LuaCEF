@@ -78,4 +78,17 @@ uintptr_t GetWndProcHookAddress()
 
     return 0;
 }
+
+uintptr_t GetDrawHookAddress()
+{
+    switch (GetVersion())
+    {
+    case SampVersion::v037r1:
+        return GetSampHandle() + 0x7165E;
+    case SampVersion::v037r3:
+        return GetSampHandle() + 0x75564;
+    }
+
+    return 0;
+}
 } // namespace samp_utils
