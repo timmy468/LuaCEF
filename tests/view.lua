@@ -19,7 +19,7 @@ function main()
 
     sampAddChatMessage("LuaCEF version: " .. luacef.VERSION, 0xFFFF00)
 
-    local pathUrl = getWorkingDirectory() .. "\\resource\\testcef\\index.html"
+    local pathUrl = "file:///" .. getWorkingDirectory() .. "\\resource\\testcef\\index.html"
     webView = luacef.create(
         pathUrl, 500, 500, 500, 500, function(_)
             sampAddChatMessage("[1] WebView created!", 0x00FF00)
@@ -57,7 +57,6 @@ function main()
     webView2 = luacef.create(
         "https://music.wntn.ru", 0, 0, 500, 500, function(_)
             sampAddChatMessage("[2] WebView created!", 0x00FF00)
-            -- webView:loadURL("https://www.youtube.com/")
         end)
 
     webView2:addOnLoadingCallback(function(_, httpStatusCode)
