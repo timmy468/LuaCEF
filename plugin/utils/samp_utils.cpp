@@ -11,6 +11,8 @@ enum SampVersion
 {
     v037r1,
     v037r3,
+    v037r5,
+    v03dl,
     unknown
 };
 
@@ -33,6 +35,10 @@ SampVersion GetVersion()
         return SampVersion::v037r1;
     case 0xCC4D0:
         return SampVersion::v037r3;
+    case 0xCBC90:
+        return SampVersion::v037r5;
+    case 0xFDB60:
+        return SampVersion::v03dl;
     default:
         return SampVersion::unknown;
     }
@@ -50,6 +56,12 @@ void ToggleCursor(bool show)
         case SampVersion::v037r3:
             sampapi::v037r3::RefGame()->SetCursorMode(sampapi::v037r3::CURSOR_LOCKCAM, 0);
             break;
+        case SampVersion::v037r5:
+            sampapi::v037r5::RefGame()->SetCursorMode(sampapi::v037r5::CURSOR_LOCKCAM, 0);
+            break;
+        case SampVersion::v03dl:
+            sampapi::v03dl::RefGame()->SetCursorMode(sampapi::v03dl::CURSOR_LOCKCAM, 0);
+            break;
         }
     }
     else
@@ -61,6 +73,12 @@ void ToggleCursor(bool show)
             break;
         case SampVersion::v037r3:
             sampapi::v037r3::RefGame()->SetCursorMode(sampapi::v037r3::CURSOR_NONE, 0);
+            break;
+        case SampVersion::v037r5:
+            sampapi::v037r5::RefGame()->SetCursorMode(sampapi::v037r5::CURSOR_NONE, 0);
+            break;
+        case SampVersion::v03dl:
+            sampapi::v03dl::RefGame()->SetCursorMode(sampapi::v03dl::CURSOR_NONE, 0);
             break;
         }
     }
@@ -74,6 +92,10 @@ uintptr_t GetWndProcHookAddress()
         return GetSampHandle() + 0x5DB40;
     case SampVersion::v037r3:
         return GetSampHandle() + 0x60EE0;
+    case SampVersion::v037r5:
+        return GetSampHandle() + 0x61650;
+    case SampVersion::v03dl:
+        return GetSampHandle() + 0x610D0;
     }
 
     return 0;
@@ -87,6 +109,10 @@ uintptr_t GetDrawHookAddress()
         return GetSampHandle() + 0x7165E;
     case SampVersion::v037r3:
         return GetSampHandle() + 0x75564;
+    case SampVersion::v037r5:
+        return GetSampHandle() + 0x75C73;
+    case SampVersion::v03dl:
+        return GetSampHandle() + 0x756F4;
     }
 
     return 0;
