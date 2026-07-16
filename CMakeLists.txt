@@ -6,9 +6,11 @@ add_compile_definitions(
     NOMINMAX
 )
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 set(CEF_ROOT "${CMAKE_SOURCE_DIR}/third_party/cef")
 set(CEF_RUNTIME_LIBRARY_FLAG   
-    /MD
+    /MT
     CACHE STRING ""
     FORCE)
 set(USE_SANDBOX OFF CACHE BOOL "")

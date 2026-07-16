@@ -1,0 +1,3 @@
+{
+    "cmake.configureArgs": ["-DCMAKE_POLICY_VERSION_MINIMUM=3.5", "-Dplugin-sdk_DIR=C:/Dev/deps/plugin-sdk/install/mt/lib/cmake/plugin-sdk"]
+}

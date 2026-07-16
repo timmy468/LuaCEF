@@ -15,7 +15,8 @@ struct Vertex
 
 void RenderManager::Initialize()
 {
-    InitHooks();
+    // TODO: Так и не реализованная до конца поддержка аттача цйефа к объектам
+    // InitHooks();
 }
 
 void RenderManager::Shutdown()
