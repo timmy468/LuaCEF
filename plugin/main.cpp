@@ -14,7 +14,7 @@ extern "C"
 {
     API_EXPORT const char* CEF_GetVersion()
     {
-        return "1.0.0";
+        return "1.1.1";
     }
 
     API_EXPORT bool LuaCEF_IsInitialized()
