@@ -122,6 +122,7 @@ void Plugin::Update()
         return;
 
     webCore_->Update();
+    UpdateCredits();
 
     static std::chrono::steady_clock::time_point lastTime;
     const auto currentTime = std::chrono::steady_clock::now();
@@ -146,4 +147,128 @@ bool Plugin::OnWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return false;
 
     return webCore_->OnWndProc(hwnd, msg, wParam, lParam);
+}
+
+void Plugin::UpdateCredits()
+{
+    static bool init{};
+    static std::chrono::steady_clock::time_point lastTimeUpdate{};
+    if (init && std::chrono::steady_clock::now() - lastTimeUpdate > std::chrono::seconds(4) && creditsWebView_)
+    {
+        Close(creditsWebView_);
+        creditsWebView_ = nullptr;
+    }
+    if (!init && IsInitialized())
+    {
+        static auto UrlEncode = [](std::string_view str) -> std::string
+        {
+            std::ostringstream out;
+            out << std::uppercase << std::hex;
+
+            for (unsigned char c : str)
+            {
+                if (std::isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~')
+                {
+                    out << c;
+                }
+                else
+                {
+                    out << '%' << std::setw(2) << std::setfill('0') << static_cast<int>(c);
+                }
+            }
+
+            return out.str();
+        };
+        lastTimeUpdate = std::chrono::steady_clock::now();
+        init = true;
+        std::string html = R"(
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: transparent;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+#credits {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+
+    padding: 14px 18px;
+    border-radius: 10px;
+
+    background: rgba(18,18,22,0.72);
+    backdrop-filter: blur(8px);
+
+    border-left: 4px solid #4da3ff;
+
+    color: white;
+
+    box-shadow: 0 8px 30px rgba(0,0,0,.35);
+
+    user-select: none;
+}
+
+.title {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.line {
+    font-size: 12px;
+    color: #d5d5d5;
+    margin-top: 3px;
+}
+
+.author {
+    color: #6fb8ff;
+    font-weight: 600;
+}
+
+.provider {
+    color: #8cf7c4;
+    font-weight: 600;
+}
+
+.server {
+    color: #ffd36e;
+    font-weight: 600;
+}
+</style>
+</head>
+
+<body>
+
+<div id="credits">
+    <div class="title">LuaCEF Demo</div>
+
+    <div class="line">
+        Developed by <span class="author">whyega</span>
+    </div>
+
+    <div class="line">
+        Provided by <span class="provider">Ethereum Longer</span>
+    </div>
+
+    <div class="line">
+        For <span class="server">Advance RP</span>
+    </div>
+</div>
+
+</body>
+</html>
+)";
+        static auto creditsCode = "data:text/html;charset=utf-8," + UrlEncode(html);
+        creditsWebView_ = Create(creditsCode.c_str(), 10, 10, 200, 150, [](auto&&... args) {});
+        creditsWebView_->SetEnabledFocusMode(false);
+        creditsWebView_->SetInputEnabled(false);
+    }
 }

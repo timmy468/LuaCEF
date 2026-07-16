@@ -49,7 +49,7 @@ struct CreateWebViewCmd
 
     uintptr_t parentWindow;
 
-    char url[512];
+    char url[4096];
 };
 
 struct CreateWebViewResponse
@@ -83,7 +83,7 @@ struct URLChangedResponse
 {
     uint32_t id;
 
-    char url[512];
+    char url[4096];
 };
 
 struct BindFunctionResponse
@@ -110,7 +110,7 @@ struct LoadURLCmd
 {
     uint32_t id;
 
-    char url[512];
+    char url[4096];
 };
 
 struct ReloadPageCmd

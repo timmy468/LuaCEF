@@ -18,6 +18,8 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
     using WndProcHook = kthook::kthook_simple<WndProc_t>;
     std::unique_ptr<WndProcHook> wndProcHook_;
 
+    RemoteWebView* creditsWebView_;
+
   public:
     void OnAttach(void* handle);
     void OnDetach();
@@ -40,6 +42,7 @@ class Plugin final : public plugintmplt::AbstractPlugin<Plugin>
   private:
     void InstallGameHooks();
     void InstallWndProcHook(uintptr_t address);
+    void UpdateCredits();
 
     void OnRenderInit();
     void OnGameInit();
