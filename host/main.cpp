@@ -24,7 +24,9 @@ void CreateDebugConsole()
 
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
+#ifndef NDEBUG
     CreateDebugConsole();
+#endif
 
     Logger::Instance().SetLogFilePath(std::filesystem::current_path() / "luacef" / "host.log");
 

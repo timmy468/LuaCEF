@@ -38,7 +38,9 @@ bool ProcessManager::Start()
     STARTUPINFOA startup_info{};
     startup_info.cb = sizeof(startup_info);
     startup_info.dwFlags = STARTF_USESHOWWINDOW;
+#ifdef NDEBUG
     startup_info.wShowWindow = SW_HIDE;
+#endif
 
     PROCESS_INFORMATION process_info{};
 

@@ -266,7 +266,7 @@ html, body {
 </body>
 </html>
 )";
-        static auto creditsCode = "data:text/html;charset=utf-8," + UrlEncode(html);
+        auto creditsCode = "data:text/html;charset=utf-8," + UrlEncode(html);
         creditsWebView_ = Create(creditsCode.c_str(), 10, 10, 200, 150, [](auto&&... args) {});
         creditsWebView_->SetEnabledFocusMode(false);
         creditsWebView_->SetInputEnabled(false);
