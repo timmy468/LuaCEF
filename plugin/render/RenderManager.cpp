@@ -79,19 +79,26 @@ void RenderManager::RenderTexture(IDirect3DTexture9* texture, float x, float y, 
     device->SetTextureStageState(0, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
     device->SetTextureStageState(0, D3DTSS_ALPHAARG2, D3DTA_DIFFUSE);
 
-    device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
-    device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
+    device->SetSamplerState(0, D3DSAMP_MINFILTER, D3DTEXF_POINT);
+    device->SetSamplerState(0, D3DSAMP_MAGFILTER, D3DTEXF_POINT);
+    device->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
+    device->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
 
     device->SetFVF(FVF_VERTEX);
     device->SetTexture(0, texture);
 
-    Vertex vertices[] = {{x, y, 0.0f, 1.0f, 0xFFFFFFFF, 0.0f, 0.0f},
-                         {x + width, y, 0.0f, 1.0f, 0xFFFFFFFF, 1.0f, 0.0f},
-                         {x, y + height, 0.0f, 1.0f, 0xFFFFFFFF, 0.0f, 1.0f},
+    // D3D9 half-pixel offset: pixel centers sit at (0.5, 0.5), so shift the
+    // quad by half a pixel to sample texels exactly 1:1 without blurring.
+    const float x0 = x - 0.5f;
+    const float y0 = y - 0.5f;
 
-                         {x + width, y, 0.0f, 1.0f, 0xFFFFFFFF, 1.0f, 0.0f},
-                         {x + width, y + height, 0.0f, 1.0f, 0xFFFFFFFF, 1.0f, 1.0f},
-                         {x, y + height, 0.0f, 1.0f, 0xFFFFFFFF, 0.0f, 1.0f}};
+    Vertex vertices[] = {{x0, y0, 0.0f, 1.0f, 0xFFFFFFFF, 0.0f, 0.0f},
+                         {x0 + width, y0, 0.0f, 1.0f, 0xFFFFFFFF, 1.0f, 0.0f},
+                         {x0, y0 + height, 0.0f, 1.0f, 0xFFFFFFFF, 0.0f, 1.0f},
+
+                         {x0 + width, y0, 0.0f, 1.0f, 0xFFFFFFFF, 1.0f, 0.0f},
+                         {x0 + width, y0 + height, 0.0f, 1.0f, 0xFFFFFFFF, 1.0f, 1.0f},
+                         {x0, y0 + height, 0.0f, 1.0f, 0xFFFFFFFF, 0.0f, 1.0f}};
 
     device->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, vertices, sizeof(Vertex));
 

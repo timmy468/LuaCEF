@@ -114,6 +114,17 @@ void BrowserView::GetViewRect(CefRefPtr<CefBrowser>, CefRect& rect)
     rect = CefRect(0, 0, width_, height_);
 }
 
+bool BrowserView::GetScreenInfo(CefRefPtr<CefBrowser>, CefScreenInfo& screen_info)
+{
+    const CefRect view_rect(0, 0, width_, height_);
+
+    screen_info.device_scale_factor = 1.0f;
+    screen_info.rect = view_rect;
+    screen_info.available_rect = view_rect;
+
+    return true;
+}
+
 void BrowserView::OnAfterCreated(CefRefPtr<CefBrowser> browser)
 {
     Logger::Instance().Log("BrowserView::OnAfterCreated() {:p} {:d} {:d}", (void*)this, width_, height_);

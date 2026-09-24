@@ -51,6 +51,7 @@ class BrowserView : public CefClient,
     void OnPaint(CefRefPtr<CefBrowser>, PaintElementType type, const RectList& dirtyRects, const void* buffer,
                  int width, int height) override;
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
+    bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo& screen_info) override;
 
     // CefLifeSpanHandler
     bool OnBeforePopup(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, const CefString&, const CefString&,
@@ -121,6 +122,12 @@ class BrowserView : public CefClient,
         y_ = y;
         width_ = width;
         height_ = height;
+
+        if (browser_ && browser_->GetHost())
+        {
+            browser_->GetHost()->WasResized();
+            browser_->GetHost()->NotifyScreenInfoChanged();
+        }
     }
 
   private:

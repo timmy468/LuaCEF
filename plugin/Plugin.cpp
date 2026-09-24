@@ -70,7 +70,28 @@ RemoteWebView* Plugin::CreateFullscreen(const char* url, RemoteWebView::FrameCal
 
     Logger::Instance().Log("Creating fullscreen web view with URL: {}", url);
 
-    auto webView = webCore_->Create(url, 0, 0, RsGlobal.maximumWidth, RsGlobal.maximumHeight, onCreate);
+    int width = RsGlobal.maximumWidth;
+    int height = RsGlobal.maximumHeight;
+
+    if (auto* device = GetD3DDevice())
+    {
+        IDirect3DSurface9* backBuffer = nullptr;
+        if (SUCCEEDED(device->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backBuffer)) && backBuffer)
+        {
+            D3DSURFACE_DESC desc{};
+            if (SUCCEEDED(backBuffer->GetDesc(&desc)))
+            {
+                width = static_cast<int>(desc.Width);
+                height = static_cast<int>(desc.Height);
+            }
+
+            backBuffer->Release();
+        }
+    }
+
+    Logger::Instance().Log("Fullscreen web view size: {}x{}", width, height);
+
+    auto webView = webCore_->Create(url, 0, 0, width, height, onCreate);
     return webView;
 }
 
