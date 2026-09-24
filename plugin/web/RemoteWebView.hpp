@@ -36,6 +36,9 @@ class RemoteWebView
     void OnURLChanged(const std::string& url);
     void OnBindFunctionCall(const std::string& function, const std::string& args);
 
+    // Хост пересоздал shared memory под новый размер — переоткрываем её.
+    void OnResizeResponse(int width, int height);
+
     void AddOnAfterCreateCallback(FrameCallback callback)
     {
         onAfterCreateCallbacks_.push_back(callback);
@@ -129,13 +132,7 @@ class RemoteWebView
         return browserId_;
     }
 
-    void SetRect(int x, int y, int width, int height)
-    {
-        x_ = x;
-        y_ = y;
-        width_ = width;
-        height_ = height;
-    }
+    void SetRect(int x, int y, int width, int height);
 
     void SetURL(const std::string& url)
     {
@@ -185,6 +182,7 @@ class RemoteWebView
     bool renderEnabled_{true};
 
     IDirect3DDevice9* device_{};
+    DWORD parentPid_{};
 
     std::vector<FrameCallback> onAfterCreateCallbacks_;
     std::vector<LoadingCallback> onLoadingCallbacks_;
@@ -203,6 +201,7 @@ class RemoteWebView
     bool focused_{};
     bool enabledFocusMode_{true};
     bool hasFrame_{};
+    bool resizing_{};
 
   private:
     void CreateTexture(uint32_t width, uint32_t height);

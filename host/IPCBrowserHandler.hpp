@@ -28,6 +28,8 @@ class IPCBrowserHandler : public ipc::IPCMessageHandler
     void UnregisterBrowser(uint32_t id);
 
   private:
+    void SendResizeResponse(HANDLE pipe, uint32_t id, int width, int height);
+
     std::map<uint32_t, CefRefPtr<BrowserView>> browsers_;
 
     std::shared_ptr<ipc::IPCServer> ipcServer_;

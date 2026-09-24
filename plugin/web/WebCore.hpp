@@ -32,6 +32,7 @@ class WebCore
     void Close(RemoteWebView* view);
     bool IsAnyInputActive() const;
 
+    void SetRect(RemoteWebView* view, int x, int y, int width, int height);
     void LoadURL(RemoteWebView* view, const std::string& url);
     void ReloadPage(RemoteWebView* view, bool ignoreCache);
     void GoBack(RemoteWebView* view);

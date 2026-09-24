@@ -33,8 +33,14 @@ void RemoteWebView::AttachBrowser(DWORD parentPid)
     if (closing_)
         return;
 
-    if (sharedMemory_.Open(std::format("LuaCEF_SharedMemory_{}_{}", parentPid, static_cast<uint32_t>(browserId_)),
-                           width_, height_))
+    parentPid_ = parentPid;
+
+    // Ресайз был запрошен раньше, чем пришёл ответ на создание, либо
+    // отображение уже открыто OnResizeResponse — повторно не открываем.
+    if (resizing_ || sharedMemory_.IsOpen())
+        return;
+
+    if (sharedMemory_.Open(ipc::SharedMemory::MakeName(parentPid, static_cast<uint32_t>(browserId_)), width_, height_))
     {
         frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
         Logger::Instance().Log("SharedFrame: {:p} {} {}", (void*)frame_, frame_->header.width.load(),
@@ -44,6 +50,75 @@ void RemoteWebView::AttachBrowser(DWORD parentPid)
     {
         Logger::Instance().Log("Failed to open shared memory: {}", (void*)sharedMemory_.GetBuffer());
     }
+}
+
+void RemoteWebView::OnResizeResponse(int width, int height)
+{
+    if (closing_)
+        return;
+
+    // Ответ на устаревший ресайз (уже запрошен другой размер) — игнорируем.
+    if (width != width_ || height != height_)
+        return;
+
+    // Отображение уже открыто (например, ответ на чистое перемещение).
+    if (sharedMemory_.IsOpen() && frame_ != nullptr)
+    {
+        resizing_ = false;
+        return;
+    }
+
+    if (width <= 0 || height <= 0)
+    {
+        resizing_ = false;
+        return;
+    }
+
+    const uint32_t parentPid = parentPid_ != 0 ? parentPid_ : GetCurrentProcessId();
+
+    if (!sharedMemory_.Open(ipc::SharedMemory::MakeName(parentPid, static_cast<uint32_t>(browserId_)), width, height))
+    {
+        Logger::Instance().Log("Failed to reopen shared memory after resize for view {}", browserId_);
+        resizing_ = false;
+        return;
+    }
+
+    frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
+
+    DeleteTexture();
+    CreateTexture(width_, height_);
+
+    lastSequence_ = 0;
+    hasFrame_ = false;
+    resizing_ = false;
+
+    Logger::Instance().Log("RemoteWebView resized: id={} {}x{}", browserId_, width_, height_);
+}
+
+void RemoteWebView::SetRect(int x, int y, int width, int height)
+{
+    if (width <= 0 || height <= 0)
+        return;
+
+    x_ = x;
+    y_ = y;
+
+    // Только перемещение — shared memory и CEF view не трогаем.
+    if (width == width_ && height == height_)
+        return;
+
+    width_ = width;
+    height_ = height;
+
+    // Хост пересоздаст shared memory и пришлёт SetRectResponse. До этого
+    // момента не читаем старый (уже освобождённый) буфер.
+    resizing_ = true;
+    hasFrame_ = false;
+
+    sharedMemory_.Close();
+    frame_ = nullptr;
+
+    DeleteTexture();
 }
 
 void RemoteWebView::OnAfterCreate()
@@ -124,7 +199,7 @@ void RemoteWebView::OnDeviceReset()
 
 void RemoteWebView::Update()
 {
-    if (closing_ || !frame_)
+    if (closing_ || resizing_ || !frame_)
         return;
 
     const uint32_t beginSeq = frame_->header.sequence.load(std::memory_order_acquire);

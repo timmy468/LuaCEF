@@ -252,7 +252,7 @@ extern "C"
         if (!view)
             return;
 
-        view->SetRect(x, y, width, height);
+        Plugin::GetInstance().GetWebCore()->SetRect(view, x, y, width, height);
     }
 
     API_EXPORT const char* LuaCEF_GetURL(RemoteWebView* view)

@@ -45,6 +45,7 @@ ffi.cdef [[
 
     const char* LuaCEF_GetURL(RemoteWebView view);
     void LuaCEF_LoadURL(RemoteWebView view, const char* url);
+    void LuaCEF_SetRect(RemoteWebView* view, int x, int y, int width, int height);
 
     void LuaCEF_ReloadPage(RemoteWebView view, bool ignoreCache);
     void LuaCEF_GoBack(RemoteWebView view);
@@ -225,6 +226,15 @@ end
 ---@param url string
 function RemoteWebView:loadURL(url)
     MODULE_._lib.LuaCEF_LoadURL(self._frame, url)
+end
+
+---Установить прямоугольник браузера.
+---@param x integer
+---@param y integer
+---@param width integer
+---@param height integer
+function RemoteWebView:setRect(x, y, width, height)
+    MODULE_._lib.LuaCEF_SetRect(self._frame, x, y, width, height)
 end
 
 ---Перезагрузить страницу.

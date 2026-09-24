@@ -219,9 +219,15 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
 
         if (it != browsers_.end())
         {
-            CefPostTask(TID_UI, base::BindOnce([](CefRefPtr<BrowserView> browser, int x, int y, int width, int height)
-                                               { browser->SetRect(x, y, width, height); }, it->second, cmd->x, cmd->y,
-                                               cmd->width, cmd->height));
+            CefPostTask(TID_UI, base::BindOnce(
+                                    [](IPCBrowserHandler* self, HANDLE pipe, CefRefPtr<BrowserView> browser, int x,
+                                       int y, int width, int height)
+                                    {
+                                        browser->SetRect(x, y, width, height);
+
+                                        self->SendResizeResponse(pipe, browser->GetWebviewId(), width, height);
+                                    },
+                                    this, pipe, it->second, cmd->x, cmd->y, cmd->width, cmd->height));
         }
 
         break;
@@ -560,6 +566,27 @@ void IPCBrowserHandler::HandleMessage(HANDLE pipe, ipc::CommandType type, const 
         break;
     }
     }
+}
+
+void IPCBrowserHandler::SendResizeResponse(HANDLE pipe, uint32_t id, int width, int height)
+{
+    if (!ipcServer_)
+        return;
+
+    ipcServer_->AddTaskToMessageThread(
+        [pipe, id, width, height]()
+        {
+            ipc::SetRectResponse response{};
+            response.id = id;
+            response.width = width;
+            response.height = height;
+
+            Logger::Instance().Log("Sending SetRectResponse command");
+            if (!ipc::IPCServer::Send(pipe, ipc::CommandType::SetRectResponse, response))
+            {
+                Logger::Instance().Log("Failed to send SetRectResponse");
+            }
+        });
 }
 
 void IPCBrowserHandler::RegisterBrowser(uint32_t id, CefRefPtr<BrowserView> handler)

@@ -10,9 +10,9 @@
 
 BrowserView::BrowserView(DWORD parentPid, uint32_t id, int32_t x, int32_t y, int32_t width, int32_t height,
                          uintptr_t parentWindow)
-    : x_(x), y_(y), width_(width), height_(height), webviewId(id), parentWindow_(parentWindow)
+    : parentPid_(parentPid), webviewId(id), x_(x), y_(y), width_(width), height_(height), parentWindow_(parentWindow)
 {
-    sharedMemory_.Create(std::format("LuaCEF_SharedMemory_{}_{}", parentPid, id), width, height);
+    sharedMemory_.Create(ipc::SharedMemory::MakeName(parentPid, id), width, height);
     memset(sharedMemory_.GetBuffer(), 0, sharedMemory_.GetSize());
 
     frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
@@ -123,6 +123,48 @@ bool BrowserView::GetScreenInfo(CefRefPtr<CefBrowser>, CefScreenInfo& screen_inf
     screen_info.available_rect = view_rect;
 
     return true;
+}
+
+void BrowserView::SetRect(int x, int y, int width, int height)
+{
+    if (width <= 0 || height <= 0)
+        return;
+
+    const bool sizeChanged = (width != width_ || height != height_);
+
+    x_ = x;
+    y_ = y;
+    width_ = width;
+    height_ = height;
+
+    if (sizeChanged)
+    {
+        // Пересоздаём shared memory под новый размер. Plugin перед отправкой
+        // команды закрывает своё отображение, поэтому Create с тем же именем
+        // создаёт свежий объект нужного размера.
+        sharedMemory_.Close();
+        frame_ = nullptr;
+
+        const std::string name = ipc::SharedMemory::MakeName(parentPid_, webviewId);
+
+        if (sharedMemory_.Create(name, width, height))
+        {
+            memset(sharedMemory_.GetBuffer(), 0, sharedMemory_.GetSize());
+            frame_ = static_cast<SharedFrame*>(sharedMemory_.GetBuffer());
+        }
+        else
+        {
+            Logger::Instance().Log("Failed to resize shared memory for view {}", webviewId);
+        }
+    }
+
+    if (browser_ && browser_->GetHost())
+    {
+        browser_->GetHost()->WasResized();
+        browser_->GetHost()->NotifyScreenInfoChanged();
+    }
+
+    Logger::Instance().Log("BrowserView::SetRect() id={} {}x{} at {},{}", webviewId, width, height, x, y);
 }
 
 void BrowserView::OnAfterCreated(CefRefPtr<CefBrowser> browser)

@@ -18,6 +18,7 @@ enum class CommandType : uint16_t
     BindFunctionResponse,
 
     SetRect,
+    SetRectResponse,
     LoadURL,
     ReloadPage,
     GoBack,
@@ -101,6 +102,14 @@ struct SetRectCmd
 
     int32_t x;
     int32_t y;
+
+    int32_t width;
+    int32_t height;
+};
+
+struct SetRectResponse
+{
+    uint32_t id;
 
     int32_t width;
     int32_t height;

@@ -116,23 +116,12 @@ class BrowserView : public CefClient,
         onBindFunctionCallbacks_.push_back(callback);
     }
 
-    void SetRect(int x, int y, int width, int height)
-    {
-        x_ = x;
-        y_ = y;
-        width_ = width;
-        height_ = height;
-
-        if (browser_ && browser_->GetHost())
-        {
-            browser_->GetHost()->WasResized();
-            browser_->GetHost()->NotifyScreenInfoChanged();
-        }
-    }
+    void SetRect(int x, int y, int width, int height);
 
   private:
     CefRefPtr<CefBrowser> browser_;
 
+    DWORD parentPid_;
     uint32_t webviewId;
 
     int x_;

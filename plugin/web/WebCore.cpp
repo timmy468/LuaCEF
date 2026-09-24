@@ -139,6 +139,33 @@ void WebCore::Close(RemoteWebView* view)
     }
 }
 
+void WebCore::SetRect(RemoteWebView* view, int x, int y, int width, int height)
+{
+    auto it = std::find(webViews_.begin(), webViews_.end(), view);
+    if (it == webViews_.end())
+        return;
+
+    (*it)->SetRect(x, y, width, height);
+
+    ipc::SetRectCmd cmd{};
+    cmd.id = view->GetBrowserId();
+    cmd.x = x;
+    cmd.y = y;
+    cmd.width = width;
+    cmd.height = height;
+
+    AddTaskToMessageThread(
+        [this, cmd]()
+        {
+            Logger::Instance().Log("Sending SetRect command");
+            if (!ipcClient_->Send(ipc::CommandType::SetRect, cmd))
+            {
+                Logger::Instance().Log("Failed to send SetRect command");
+            }
+            Logger::Instance().Log("SetRect command sent");
+        });
+}
+
 void WebCore::LoadURL(RemoteWebView* view, const std::string& url)
 {
     auto it = std::find(webViews_.begin(), webViews_.end(), view);
@@ -608,6 +635,43 @@ void WebCore::MessageReceiveThreadProc()
                     if (it != webViews_.end())
                     {
                         (*it)->AttachBrowser(GetCurrentProcessId());
+                    }
+                });
+
+            break;
+        }
+
+        case ipc::CommandType::SetRectResponse:
+        {
+            if (header.payloadSize != sizeof(ipc::SetRectResponse))
+            {
+                Logger::Instance().Log("Invalid SetRectResponse payload size");
+                break;
+            }
+
+            ipc::SetRectResponse response{};
+
+            if (!ipcClient_->ReceivePayload(response))
+            {
+                Logger::Instance().Log("Failed to receive SetRectResponse payload");
+                break;
+            }
+
+            const uint32_t browserId = response.id;
+            const int width = response.width;
+            const int height = response.height;
+
+            Logger::Instance().Log("Resize response browser with id {} ({}x{})", browserId, width, height);
+
+            AddTaskToGameThread(
+                [this, browserId, width, height]()
+                {
+                    auto it = std::find_if(webViews_.begin(), webViews_.end(),
+                                           [browserId](auto& view) { return view->GetBrowserId() == browserId; });
+
+                    if (it != webViews_.end())
+                    {
+                        (*it)->OnResizeResponse(width, height);
                     }
                 });
 
